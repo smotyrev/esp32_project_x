@@ -86,9 +86,9 @@ void loop() {
 //    Serial.println("%");
 
     dht.temperature().getEvent(&event);
-    Serial.print((String)"d01.txt=\""+event.temperature+"ºC\""+char(255)+char(255)+char(255)); 
+    Serial.print((String)"d01.txt=\""+event.temperature+" C\""+char(255)+char(255)+char(255)); 
     dht.humidity().getEvent(&event);
-    Serial.print((String)"d02.txt=\""+event.relative_humidity+"\""+char(255)+char(255)+char(255)); 
+    Serial.print((String)"d02.txt=\""+event.relative_humidity+" %\""+char(255)+char(255)+char(255)); 
 
 
   Wire.requestFrom(8, 6);    // request 6 bytes from slave device #8
@@ -100,17 +100,17 @@ void loop() {
   Serial.print((String)"\""+char(255)+char(255)+char(255));
 
 
-  Serial.print((String)"d31.txt=\""+sht20.readTemperature()+"\""+char(255)+char(255)+char(255)); 
-  Serial.print((String)"d32.txt=\""+sht20.readHumidity()+"\""+char(255)+char(255)+char(255)); 
+  Serial.print((String)"d31.txt=\""+sht20.readTemperature()+" C\""+char(255)+char(255)+char(255)); 
+  Serial.print((String)"d32.txt=\""+sht20.readHumidity()+" %\""+char(255)+char(255)+char(255)); 
 
   //температура DS18B20 sensor
   sensors.requestTemperatures();
-  Serial.print((String)"d11.txt=\""+sensors.getTempCByIndex(0)+"ºC\""+char(255)+char(255)+char(255));
+  Serial.print((String)"d11.txt=\""+sensors.getTempCByIndex(0)+" C\""+char(255)+char(255)+char(255));
 
   // поплавок, датчик воды
   if(digitalRead(FLOAT_SENSOR) == LOW) {
-    Serial.println("HIGH");
+    Serial.print((String)"d14.txt=\"HIGH\""+char(255)+char(255)+char(255));
   } else {
-    Serial.println("LOW");
+    Serial.print((String)"d14.txt=\"LOW\""+char(255)+char(255)+char(255));
   }
 }

@@ -1,5 +1,5 @@
 //sep32 module
-#define DEBUG false
+#define DEBUG true
 
 
 #include <Wire.h>
@@ -9,12 +9,15 @@
 #define I2C_SCL 22
 
 // RELAY PINS:
-#define PUMP_HIGH  23       // насос высокого давления
-bool isPumpHighOn = false;
+#define PUMP_HIGH   23       // насос высокого давления
 #define timeoutPumpHigh 15        //15 секунд таймаут
 #define timePumpHigh 7            //7 екунд
 uint32_t pumpHighTS_start = 0;
 uint32_t pumpHighTS_end = 0;
+#define LIGHT       13        // севет 2 реле, охлаждение света 2 реле
+#define timeLightOn 19
+#define timeLightOff 20
+bool isLightOn = false;
 
 // часы
 #include <DS3231.h>
@@ -115,16 +118,21 @@ void setup() {
   // RELAY PIN INIT
   pinMode(PUMP_HIGH, OUTPUT);
   digitalWrite(PUMP_HIGH, HIGH);
+  pinMode(LIGHT, OUTPUT);
+  digitalWrite(LIGHT, HIGH);
 }
 
 void loop() {
   //delay(delayMS);
   if (DEBUG) { Serial.println(); }
-  uint32_t nowTS;
   DateTime now = myRTC.now();
+  uint32_t nowTS;
   nowTS = now.unixtime();
+  uint32_t nowHour;
+  nowHour = now.hour();
 
   // RELAY processing:
+  // управляяем насосом высокого давления
   if (pumpHighTS_start > 0) {
     uint32_t dTS = nowTS - pumpHighTS_start;
     if (dTS >= timePumpHigh) {
@@ -143,31 +151,43 @@ void loop() {
       if (DEBUG) { Serial.println("мотор высокого давления: вкл."); }
     }
   }
+  // управляем светом
+  if (isLightOn) { if (nowHour >= timeLightOff) {
+      digitalWrite(LIGHT, HIGH);
+      isLightOn = false;
+      if (DEBUG) { Serial.println("свет: выкл."); }
+  } } else { if (nowHour >= timeLightOn && nowHour < timeLightOff) {
+    isLightOn = true;
+    digitalWrite(LIGHT, LOW);
+    if (DEBUG) { Serial.println("свет: вкл."); }
+  } }
 
-  // если пришла команда из serial line, выполняем действия по настройке
-  // напр. устанавливаем часы
-  if (Serial.available()) {
-    GetDateStuff(Year, Month, Date, DoW, Hour, Minute, Second);
-    Clock.setClockMode(false);  // set to 24h - flase; 12h - true
-    Clock.setYear(Year);
-    Clock.setMonth(Month);
-    Clock.setDate(Date);
-    Clock.setDoW(DoW);
-    Clock.setHour(Hour);
-    Clock.setMinute(Minute);
-    Clock.setSecond(Second);
-    // Test of alarm functions
-    // set A1 to one minute past the time we just set the clock
-    // on current day of week.
-    Clock.setA1Time(DoW, Hour, Minute+1, Second, 0x0, true, 
-      false, false);
-    // set A2 to two minutes past, on current day of month.
-    Clock.setA2Time(Date, Hour, Minute+2, 0x0, false, false, 
-      false);
-    // Turn on both alarms, with external interrupt
-    Clock.turnOnAlarm(1);
-    Clock.turnOnAlarm(2);
-  }
+
+//  раскоментировать если нужно задать время
+//  // если пришла команда из serial line, выполняем действия по настройке
+//  // напр. устанавливаем часы
+//  if (Serial.available()) {
+//    GetDateStuff(Year, Month, Date, DoW, Hour, Minute, Second);
+//    Clock.setClockMode(false);  // set to 24h - flase; 12h - true
+//    Clock.setYear(Year);
+//    Clock.setMonth(Month);
+//    Clock.setDate(Date);
+//    Clock.setDoW(DoW);
+//    Clock.setHour(Hour);
+//    Clock.setMinute(Minute);
+//    Clock.setSecond(Second);
+//    // Test of alarm functions
+//    // set A1 to one minute past the time we just set the clock
+//    // on current day of week.
+//    Clock.setA1Time(DoW, Hour, Minute+1, Second, 0x0, true, 
+//      false, false);
+//    // set A2 to two minutes past, on current day of month.
+//    Clock.setA2Time(Date, Hour, Minute+2, 0x0, false, false, 
+//      false);
+//    // Turn on both alarms, with external interrupt
+//    Clock.turnOnAlarm(1);
+//    Clock.turnOnAlarm(2);
+//  }
 
   // печатаем время
   Serial.print((String)"time1.txt=\""); 

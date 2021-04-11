@@ -15,8 +15,6 @@ public:
 
 private:
     uint32_t fakeNow = 0;
-    void SetDateAndTime();
-    void GetDateStuff();
 };
 
 

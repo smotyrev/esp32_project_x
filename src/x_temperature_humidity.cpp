@@ -1,6 +1,6 @@
 #include "x_temperature_humidity.h"
 
-DHT_Unified dht(DHTPIN, DHTTYPE);
+DHT_Unified dht(DHT_PIN, DHT_TYPE);
 
 DFRobot_SHT20 sht20;
 uint32_t dhtDelayMS;

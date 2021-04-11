@@ -63,6 +63,7 @@ void x_temperature_humidity::loop() {
         logToScreen("d01.txt", (String) dhtVal.temperature + " C");
     }
     dht.humidity().getEvent(&dhtVal);
+    boxHumid = dhtVal.relative_humidity;
     if (DEBUG) {
         Serial.print((String) dhtVal.relative_humidity + "%");
     } else {

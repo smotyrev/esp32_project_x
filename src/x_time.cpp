@@ -32,7 +32,6 @@ void x_time::loop() {
         now = DateTime(fakeNow++);
     }
     nowTS = now.unixtime();
-    nowHour = now.hour();
 
     if (DEBUG) {
         Serial.println(

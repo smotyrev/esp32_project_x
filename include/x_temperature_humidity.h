@@ -15,6 +15,8 @@
 
 class x_temperature_humidity {
 public:
+    float boxHumid;
+
     void setup();
 
     void loop();

@@ -9,7 +9,6 @@ class x_time {
 public:
     DateTime now;
     uint32_t nowTS;
-    uint32_t nowHour;
     void setup();
     void loop();
 

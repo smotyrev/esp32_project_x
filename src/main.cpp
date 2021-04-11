@@ -76,7 +76,7 @@ void loop() {
     // RELAY processing:
     // -----------------
 
-    // управляяем насосом высокого давления
+    // Управляяем насосом высокого давления
     if (pumpHighTS_start > 0) {
         uint32_t dTS = xTime.nowTS - pumpHighTS_start;
         if (dTS >= timePumpHigh) {
@@ -96,25 +96,74 @@ void loop() {
         }
     }
 
-    // управляем светом
-    uint32_t deltaSeconds = xTime.now.unixtime() - startGrow.unixtime();
+    // Управляем светом
+    uint32_t deltaSeconds = xTime.nowTS - startGrow.unixtime();
     uint32_t deltaDays = deltaSeconds / (24 * 60 * 60);
-    if (DEBUG) {
-        logEvent((String) "deltaSeconds=" + deltaSeconds + " deltaDays=" + deltaDays);
+    if (DEBUG && VERBOSE) {
+        logEvent((String) "V: deltaSeconds=" + deltaSeconds + " deltaDays=" + deltaDays);
     }
-//    if (isLightOn) {
-//        if (xTime.nowHour >= timeLightOff) {
-//            digitalWrite(LIGHT_PIN, HIGH);
-//            isLightOn = false;
-//            if (DEBUG) { logEvent("свет: выкл."); }
-//        }
-//    } else {
-//        if (xTime.nowHour >= lightTimeOn && xTime.nowHour < timeLightOff) {
-//            isLightOn = true;
-//            digitalWrite(LIGHT_PIN, LOW);
-//            if (DEBUG) { logEvent("свет: вкл."); }
-//        }
-//    }
+    auto addMinutes = deltaDays * lightDeltaMinutes;
+    auto lightMinutes = lightMinHours * 60 + addMinutes;
+    if (lightMinutes > lightMaxHours * 60) {
+        lightMinutes = lightMaxHours * 60;
+    }
+    // последняя минута включенного света с начала дня
+    auto lightEndMinute = lightTimeOn * 60 + lightMinutes;
+    if (lightEndMinute >= 24 * 60) {
+        lightEndMinute -= 24 * 60;
+    }
+    const auto lightStartMinute = lightTimeOn * 60;
+    // текущая минута с начала дня
+    const auto currMinute = xTime.now.hour() * 60 + xTime.now.minute();
+    if (DEBUG && VERBOSE) {
+        logEvent((String) "V: lightMinutes=" + lightMinutes + " lightStartMinute=" + lightStartMinute
+                 + " lightEndMinute=" + lightEndMinute + " currMinute=" + currMinute);
+    }
+    if (isLightOn) {
+        if ((lightStartMinute < lightEndMinute && (currMinute < lightStartMinute || currMinute >= lightEndMinute))
+            || (lightStartMinute > lightEndMinute && (currMinute < lightStartMinute && currMinute >= lightEndMinute))
+                ) {
+            digitalWrite(LIGHT_PIN, HIGH);
+            isLightOn = false;
+            if (DEBUG) { logEvent("свет: выкл."); }
+        }
+    } else {
+        if ((lightStartMinute < lightEndMinute && (currMinute >= lightStartMinute && currMinute < lightEndMinute))
+            || (lightStartMinute > lightEndMinute && (currMinute >= lightStartMinute || currMinute < lightEndMinute))
+                ) {
+            isLightOn = true;
+            digitalWrite(LIGHT_PIN, LOW);
+            if (DEBUG) { logEvent("свет: вкл."); }
+        }
+    }
+
+    // Управление в БОКСЕ
+    if (isBoxVentOn) {
+        if (xTempHumid.boxHumid <= boxHumidOk) {
+            isLightOn = false;
+            digitalWrite(BOX_VENT_PIN, HIGH);
+            if (DEBUG) { logEvent("БОКС вентилятор: выкл."); }
+        }
+    } else {
+        if (xTempHumid.boxHumid >= boxHumidMax) {
+            isLightOn = true;
+            digitalWrite(BOX_VENT_PIN, LOW);
+            if (DEBUG) { logEvent("БОКС вентилятор: вкл."); }
+        }
+    }
+    if (isBoxHumidOn) {
+        if (xTempHumid.boxHumid >= boxHumidOk) {
+            isBoxHumidOn = false;
+            digitalWrite(BOX_HUMID_PIN, HIGH);
+            if (DEBUG) { logEvent("БОКС увлажнитель: выкл."); }
+        }
+    } else {
+        if (xTempHumid.boxHumid <= boxHumidMin) {
+            isBoxHumidOn = true;
+            digitalWrite(BOX_HUMID_PIN, LOW);
+            if (DEBUG) { logEvent("БОКС увлажнитель: вкл."); }
+        }
+    }
 
     if (DEBUG) {
         delay(LOOP_MS_DEBUG - (millis() - loopStart));

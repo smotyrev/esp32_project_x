@@ -36,6 +36,10 @@ void setup() {
     digitalWrite(PUMP_HIGH_PIN, HIGH);
     pinMode(LIGHT_PIN, OUTPUT);
     digitalWrite(LIGHT_PIN, HIGH);
+    pinMode(BOX_HUMID_PIN, OUTPUT);
+    digitalWrite(BOX_HUMID_PIN, HIGH);
+    pinMode(BOX_VENT_PIN, OUTPUT);
+    digitalWrite(BOX_VENT_PIN, HIGH);
     Serial.println("\r\n---- ~ SETUP ----");
 }
 

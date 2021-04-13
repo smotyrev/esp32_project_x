@@ -172,7 +172,7 @@ void loop() {
     if (DEBUG) {
         delay(LOOP_MS_DEBUG - (millis() - loopStart));
     } else {
-        delay(LOOP_MS_NORMAL - (millis() - loopStart));
+        delay(min(max((int) (LOOP_MS_NORMAL - (millis() - loopStart)), 0), LOOP_MS_NORMAL));
     }
 }
 
@@ -183,13 +183,17 @@ inline void processConsoleCommand() {
         if (Serial.available()) {
             _char = (char) Serial.read();
             if (std::isdigit(_char) || std::isalpha(_char)) {
-                Serial.println((String) "OK CHAR = " + _char);
+                if (VERBOSE) {
+                    Serial.println((String) "OK CHAR = " + _char);
+                }
                 i = _char;
                 continue;
             }
         }
     }
-    Serial.println((String) "OK STRING = " + _string);
+    if (VERBOSE) {
+        Serial.println((String) "OK STRING = " + _string);
+    }
     std::string str = _string;
     rtrim(str);
     ltrim(str);

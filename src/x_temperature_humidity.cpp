@@ -45,7 +45,7 @@ void x_temperature_humidity::setup() {
     sht20.checkSHT20();                                 // Check SHT20 Sensor
 
     // Start the DS18B20 sensor
-    sensorDS18B20.setWaitForConversion(false);
+    sensorDS18B20.setWaitForConversion(true);
     sensorDS18B20.begin();
 }
 

@@ -100,7 +100,7 @@ inline void logWire(const String &prefix, const String &postfix) {
 }
 
 inline void logWireToScreen(const String &key, const String &prefix, const String &postfix) {
-    logWire(key + "=\"" + prefix, postfix + "\"");
+    logWire(key + "=\"" + prefix, postfix + "\"" + TERMINATE_SCREEN_POSTFIX);
 }
 
 // trim from start (in place)

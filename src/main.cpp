@@ -161,10 +161,6 @@ void loop() {
         }
     }
     if (isBoxHumidOn) {
-        if (DEBUG && VERBOSE) {
-            logEvent((String) "xTempHumid.boxHumid=" + xTempHumid.boxHumid + " NEED_TURN_HUMID_OFF=" +
-                     (xTempHumid.boxHumid >= boxHumidOk));
-        }
         if (xTempHumid.boxHumid >= boxHumidOk) {
             isBoxHumidOn = false;
             digitalWrite(BOX_HUMID_PIN, HIGH);

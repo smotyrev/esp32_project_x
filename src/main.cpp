@@ -142,21 +142,18 @@ void loop() {
     }
 
     // Управление в БОКСЕ
+    if (DEBUG && VERBOSE) {
+        logEvent((String) "xTempHumid.boxHumid=" + xTempHumid.boxHumid + " isBoxVentOn=" + isBoxVentOn +
+                 " isBoxHumidOn=" + isBoxHumidOn + " >Ok?=" + (xTempHumid.boxHumid > boxHumidOk)
+                 + " >Min?=" + (xTempHumid.boxHumid > boxHumidMin) + " <Max?=" + (xTempHumid.boxHumid < boxHumidMax));
+    }
     if (isBoxVentOn) {
-        if (DEBUG && VERBOSE) {
-            logEvent((String) "xTempHumid.boxHumid=" + xTempHumid.boxHumid + " NEED_TURN_VENT_OFF=" +
-                     (xTempHumid.boxHumid <= boxHumidOk));
-        }
         if (xTempHumid.boxHumid <= boxHumidOk) {
             isLightOn = false;
             digitalWrite(BOX_VENT_PIN, HIGH);
             if (DEBUG) { logEvent("БОКС вентилятор: выкл."); }
         }
     } else {
-        if (DEBUG && VERBOSE) {
-            logEvent((String) "xTempHumid.boxHumid=" + xTempHumid.boxHumid + " NEED_TURN_VENT_ON=" +
-                     (xTempHumid.boxHumid >= boxHumidMax));
-        }
         if (xTempHumid.boxHumid >= boxHumidMax) {
             isLightOn = true;
             digitalWrite(BOX_VENT_PIN, LOW);
@@ -174,10 +171,6 @@ void loop() {
             if (DEBUG) { logEvent("БОКС увлажнитель: выкл."); }
         }
     } else {
-        if (DEBUG && VERBOSE) {
-            logEvent((String) "xTempHumid.boxHumid=" + xTempHumid.boxHumid + " NEED_TURN_ON=" +
-                     (xTempHumid.boxHumid <= boxHumidMin));
-        }
         if (xTempHumid.boxHumid <= boxHumidMin) {
             isBoxHumidOn = true;
             digitalWrite(BOX_HUMID_PIN, LOW);

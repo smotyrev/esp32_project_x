@@ -121,7 +121,7 @@ void loop() {
     const auto currMinute = xTime.now.hour() * 60 + xTime.now.minute();
     if (DEBUG && VERBOSE) {
         logEvent((String) "V: lightMinutes=" + lightMinutes + " lightStartMinute=" + lightStartMinute
-                 + " lightEndMinute=" + lightEndMinute + " currMinute=" + currMinute);
+                 + " lightEndMinute=" + lightEndMinute + " currMinute=" + currMinute + " isLightOn=" + isLightOn);
     }
     if (isLightOn) {
         if ((lightStartMinute < lightEndMinute && (currMinute < lightStartMinute || currMinute >= lightEndMinute))
@@ -143,12 +143,20 @@ void loop() {
 
     // Управление в БОКСЕ
     if (isBoxVentOn) {
+        if (DEBUG && VERBOSE) {
+            logEvent((String) "xTempHumid.boxHumid=" + xTempHumid.boxHumid + " NEED_TURN_VENT_OFF=" +
+                     (xTempHumid.boxHumid <= boxHumidOk));
+        }
         if (xTempHumid.boxHumid <= boxHumidOk) {
             isLightOn = false;
             digitalWrite(BOX_VENT_PIN, HIGH);
             if (DEBUG) { logEvent("БОКС вентилятор: выкл."); }
         }
     } else {
+        if (DEBUG && VERBOSE) {
+            logEvent((String) "xTempHumid.boxHumid=" + xTempHumid.boxHumid + " NEED_TURN_VENT_ON=" +
+                     (xTempHumid.boxHumid >= boxHumidMax));
+        }
         if (xTempHumid.boxHumid >= boxHumidMax) {
             isLightOn = true;
             digitalWrite(BOX_VENT_PIN, LOW);
@@ -156,12 +164,20 @@ void loop() {
         }
     }
     if (isBoxHumidOn) {
+        if (DEBUG && VERBOSE) {
+            logEvent((String) "xTempHumid.boxHumid=" + xTempHumid.boxHumid + " NEED_TURN_HUMID_OFF=" +
+                     (xTempHumid.boxHumid >= boxHumidOk));
+        }
         if (xTempHumid.boxHumid >= boxHumidOk) {
             isBoxHumidOn = false;
             digitalWrite(BOX_HUMID_PIN, HIGH);
             if (DEBUG) { logEvent("БОКС увлажнитель: выкл."); }
         }
     } else {
+        if (DEBUG && VERBOSE) {
+            logEvent((String) "xTempHumid.boxHumid=" + xTempHumid.boxHumid + " NEED_TURN_ON=" +
+                     (xTempHumid.boxHumid <= boxHumidMin));
+        }
         if (xTempHumid.boxHumid <= boxHumidMin) {
             isBoxHumidOn = true;
             digitalWrite(BOX_HUMID_PIN, LOW);

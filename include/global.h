@@ -65,9 +65,9 @@
 // Если влажность более 70%, включается вентилятор вытяжки и вентиляторы притока, пока влажность не достигнет 65%
 #define BOX_HUMID_PIN       12  // Увлажнитель
 #define BOX_VENT_PIN        14  // Вентилятор
-#define boxHumidMin         55
-#define boxHumidOk          65
-#define boxHumidMax         70
+#define boxHumidMin         55.0f
+#define boxHumidOk          65.0f
+#define boxHumidMax         70.0f
 
 // ТЕМПЕРАТУРА В БОКСЕ.
 // Если температура падает ниже 17 градусов, включается обогрев пока температура не достигнет показания 22 градуса.

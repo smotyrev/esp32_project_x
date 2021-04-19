@@ -33,13 +33,13 @@ void setup() {
 
     // RELAY PIN INIT
     pinMode(PUMP_HIGH_PIN, OUTPUT);
-    digitalWrite(PUMP_HIGH_PIN, HIGH);
+    digitalWrite(PUMP_HIGH_PIN, LOW);
     pinMode(LIGHT_PIN, OUTPUT);
-    digitalWrite(LIGHT_PIN, HIGH);
+    digitalWrite(LIGHT_PIN, LOW);
     pinMode(BOX_HUMID_PIN, OUTPUT);
-    digitalWrite(BOX_HUMID_PIN, HIGH);
+    digitalWrite(BOX_HUMID_PIN, LOW);
     pinMode(BOX_VENT_PIN, OUTPUT);
-    digitalWrite(BOX_VENT_PIN, HIGH);
+    digitalWrite(BOX_VENT_PIN, LOW);
     Serial.println("\r\n---- ~ SETUP ----");
 }
 
@@ -86,7 +86,7 @@ void loop() {
         if (dTS >= timePumpHigh) {
             pumpHighTS_start = 0;
             pumpHighTS_end = xTime.now.unixtime();
-            digitalWrite(PUMP_HIGH_PIN, HIGH);
+            digitalWrite(PUMP_HIGH_PIN, LOW);
             if (DEBUG) { logEvent("мотор высокого давления: выкл"); }
         }
     } else {
@@ -95,7 +95,7 @@ void loop() {
         if (dTS >= timeoutPumpHigh) {
             pumpHighTS_end = 0;
             pumpHighTS_start = xTime.now.unixtime();
-            digitalWrite(PUMP_HIGH_PIN, LOW);
+            digitalWrite(PUMP_HIGH_PIN, HIGH);
             if (DEBUG) { logEvent("мотор высокого давления: вкл."); }
         }
     }
@@ -127,7 +127,7 @@ void loop() {
         if ((lightStartMinute < lightEndMinute && (currMinute < lightStartMinute || currMinute >= lightEndMinute))
             || (lightStartMinute > lightEndMinute && (currMinute < lightStartMinute && currMinute >= lightEndMinute))
                 ) {
-            digitalWrite(LIGHT_PIN, HIGH);
+            digitalWrite(LIGHT_PIN, LOW);
             isLightOn = false;
             if (DEBUG) { logEvent("свет: выкл."); }
         }
@@ -136,7 +136,7 @@ void loop() {
             || (lightStartMinute > lightEndMinute && (currMinute >= lightStartMinute || currMinute < lightEndMinute))
                 ) {
             isLightOn = true;
-            digitalWrite(LIGHT_PIN, LOW);
+            digitalWrite(LIGHT_PIN, HIGH);
             if (DEBUG) { logEvent("свет: вкл."); }
         }
     }
@@ -150,26 +150,26 @@ void loop() {
     if (isBoxVentOn) {
         if (xTempHumid.boxHumid <= boxHumidOk) {
             isLightOn = false;
-            digitalWrite(BOX_VENT_PIN, HIGH);
+            digitalWrite(BOX_VENT_PIN, LOW);
             if (DEBUG) { logEvent("БОКС вентилятор: выкл."); }
         }
     } else {
         if (xTempHumid.boxHumid >= boxHumidMax) {
             isLightOn = true;
-            digitalWrite(BOX_VENT_PIN, LOW);
+            digitalWrite(BOX_VENT_PIN, HIGH);
             if (DEBUG) { logEvent("БОКС вентилятор: вкл."); }
         }
     }
     if (isBoxHumidOn) {
         if (xTempHumid.boxHumid >= boxHumidOk) {
             isBoxHumidOn = false;
-            digitalWrite(BOX_HUMID_PIN, HIGH);
+            digitalWrite(BOX_HUMID_PIN, LOW);
             if (DEBUG) { logEvent("БОКС увлажнитель: выкл."); }
         }
     } else {
         if (xTempHumid.boxHumid <= boxHumidMin) {
             isBoxHumidOn = true;
-            digitalWrite(BOX_HUMID_PIN, LOW);
+            digitalWrite(BOX_HUMID_PIN, HIGH);
             if (DEBUG) { logEvent("БОКС увлажнитель: вкл."); }
         }
     }

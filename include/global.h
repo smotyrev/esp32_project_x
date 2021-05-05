@@ -4,10 +4,10 @@
 #include <DS3231.h>
 #include <Preferences.h>
 
-//#define RELAY_ON LOW        // для нормально-замкнутых реле
-//#define RELAY_OFF HIGH      // для нормально-замкнутых реле
-#define RELAY_ON HIGH       // для нормально-разомкнутых реле
-#define RELAY_OFF LOW       // для нормально-разомкнутых реле
+#define RELAY_NEW_ON HIGH       // для твердотельных реле вкл
+#define RELAY_NEW_OFF LOW       // для твердотельных реле выкл
+#define RELAY_OLD_ON LOW        // для соленойдных реле вкл
+#define RELAY_OLD_OFF LOW       // для соленойдных реле выкл
 
 // true - Если нужно в TTY-мониторе удобно смотреть все данные по датчикам и событиям.
 //      В этом режиме можно менять настройки, путем отправки команд в консоли.
@@ -43,7 +43,7 @@
 #define I2C_ADDR        8       // номер девайса, должен быть выставлен одинаково на обоих концах
 
 // поплавок, датчик воды
-#define FLOAT_SENSOR_PIN  14    // the number of the pushbutton pin
+#define FLOAT_SENSOR_PIN  27    // the number of the pushbutton pin
 
 //////////////
 // Реле пины:

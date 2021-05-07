@@ -127,8 +127,8 @@ void loop() {
         if ((lightStartMinute < lightEndMinute && (currMinute < lightStartMinute || currMinute >= lightEndMinute))
             || (lightStartMinute > lightEndMinute && (currMinute < lightStartMinute && currMinute >= lightEndMinute))
                 ) {
-            digitalWrite(LIGHT_PIN, RELAY_NEW_OFF);
             isLightOn = false;
+            digitalWrite(LIGHT_PIN, RELAY_NEW_OFF);
             if (DEBUG) { logEvent("свет: выкл."); }
         }
     } else {
@@ -149,13 +149,13 @@ void loop() {
     }
     if (isBoxVentOn) {
         if (xTempHumid.boxHumid <= boxHumidOk) {
-            isLightOn = false;
+            isBoxVentOn = false;
             digitalWrite(BOX_VENT_PIN, RELAY_NEW_OFF);
             if (DEBUG) { logEvent("БОКС вентилятор: выкл."); }
         }
     } else {
         if (xTempHumid.boxHumid >= boxHumidMax) {
-            isLightOn = true;
+            isBoxVentOn = true;
             digitalWrite(BOX_VENT_PIN, RELAY_NEW_ON);
             if (DEBUG) { logEvent("БОКС вентилятор: вкл."); }
         }

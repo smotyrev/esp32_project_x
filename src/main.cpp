@@ -33,7 +33,7 @@ void setup() {
 
     // RELAY PIN INIT
     pinMode(        PUMP_HIGH_PIN,  OUTPUT);
-    digitalWrite(   PUMP_HIGH_PIN,  RELAY_OFF);
+    digitalWrite(   PUMP_HIGH_PIN,  SRELAY_OFF);
     pinMode(        LIGHT_PIN,      OUTPUT);
     digitalWrite(   LIGHT_PIN,      RELAY_OFF);
     pinMode(        BOX_HUMID_PIN,  OUTPUT);
@@ -86,7 +86,7 @@ void loop() {
         if (dTS >= timePumpHigh) {
             pumpHighTS_start = 0;
             pumpHighTS_end = xTime.now.unixtime();
-            digitalWrite(PUMP_HIGH_PIN, RELAY_OFF);
+            digitalWrite(PUMP_HIGH_PIN, SRELAY_OFF);
             if (DEBUG) { logEvent("мотор высокого давления: выкл"); }
         }
     } else {
@@ -95,7 +95,7 @@ void loop() {
         if (dTS >= timeoutPumpHigh) {
             pumpHighTS_end = 0;
             pumpHighTS_start = xTime.now.unixtime();
-            digitalWrite(PUMP_HIGH_PIN, RELAY_ON);
+            digitalWrite(PUMP_HIGH_PIN, SRELAY_ON);
             if (DEBUG) { logEvent("мотор высокого давления: вкл."); }
         }
     }

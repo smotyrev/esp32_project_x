@@ -38,6 +38,10 @@
 #define DHT_TYPE        DHT22   // Модель используемого датчика (DHT11, DHT21 или DHT22)
 #define DS18B20_PIN     4       // GPIO where the DS18B20 is connected to
 
+#define PH_PIN          32 //the esp gpio data pin number
+#define ESPADC          4096.0   //the esp Analog Digital Convertion value
+#define ESPVOLTAGE      3300 //the esp voltage supply value
+
 // Пины для коннекта Arduino:
 // i2c : arduino -> esp32
 #define I2C_SDA_PIN     21
@@ -54,7 +58,7 @@
 // Насос высокого давления. Вклюючается периодически на несколько секунда
 #define PUMP_HIGH_PIN   23        // насос высокого давления
 #define timeoutPumpHigh 160        // 15 секунд таймаут
-#define timePumpHigh    7         // 7 екунд - время работы насоса
+#define timePumpHigh    15         // 7 екунд - время работы насоса
 
 // Свет и охлаждение света. По несколько реле на один пин, для разного напряжения.
 // Из расчета мощьности ламп и мощьности релешек.

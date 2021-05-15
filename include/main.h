@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include "global.h"
+#include "DFRobot_ESP_PH.h"
 
 // насос высокого давления
 uint32_t pumpHighTS_start = 0;
@@ -16,3 +17,4 @@ bool isBoxVentOn = false;
 bool isBoxHumidOn = false;
 
 void processConsoleCommand();
+void loopPh();

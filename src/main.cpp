@@ -11,6 +11,9 @@ x_temperature_humidity xTempHumid;
 DateTime startGrow;
 Preferences preferences;
 
+float phVoltage,phValue,phTemperature = 25;
+DFRobot_ESP_PH ph;
+
 void setup() {
     Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
     Serial.begin(9600);
@@ -27,6 +30,10 @@ void setup() {
     }
     startGrow = DateTime(ts);
     preferences.end();
+
+    //GreenPonics PH
+    EEPROM.begin(32); //needed to permit storage of calibration value in eeprom
+    ph.begin();
 
     // поплавок, датчик воды
     pinMode(FLOAT_SENSOR_PIN, INPUT_PULLUP); // initialize the pushbutton pin as an input
@@ -47,8 +54,11 @@ unsigned long loopStart;
 
 void loop() {
     loopStart = millis();
+    loopPh();
+
     if (DEBUG) {
-        Serial.println("\r\n-------------------");
+	    Serial.println("\r\n-------------------");
+        ph.calibration(phVoltage, phTemperature); // calibration process by Serail CMD
         processConsoleCommand();
     }
 
@@ -57,13 +67,6 @@ void loop() {
 
     // печатаем температуру и влвжность
     xTempHumid.loop();
-
-    // печатаем показания ph-датчика с arduino
-    if (DEBUG) {
-        logWire("Arduino PH: ", "\r\n");
-    } else {
-        logWireToScreen("d12.txt", "", "");
-    }
 
     // печатаем - поплавок, датчик воды
     if (DEBUG) {
@@ -290,4 +293,27 @@ inline void processConsoleCommand() {
             ESP.restart();
         }
     }
+}
+
+inline void loopPh() {
+    static unsigned long timepoint = millis();
+	if (millis() - timepoint > 1000U) //time interval: 1s
+	{
+		timepoint = millis();
+		//voltage = rawPinValue / esp32ADC * esp32Vin
+		phVoltage = analogRead(PH_PIN) / ESPADC * ESPVOLTAGE; // read the voltage
+		phValue = ph.readPH(phVoltage, phTemperature); // convert voltage to pH with temperature compensation
+		//temperature = readTemperature();  // read your temperature sensor to execute temperature compensation
+        if (DEBUG) {
+            Serial.print("PH voltage:");
+            Serial.print(phVoltage, 4);
+            Serial.print(" temperature:");
+            Serial.print(phTemperature, 1);
+            Serial.print(" pH:");
+            Serial.println(phValue, 4);
+        } else {
+            Serial.print((String) TERMINATE_SCREEN_POSTFIX);
+            logToScreen("d12.txt", (String) phValue);
+        }
+	}
 }

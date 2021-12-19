@@ -37,10 +37,13 @@ void setup() {
 
     // поплавок, датчик воды
     pinMode(FLOAT_SENSOR_PIN, INPUT_PULLUP); // initialize the pushbutton pin as an input
+    pinMode(FLOAT_SENSOR2_PIN, INPUT_PULLUP);
 
     // RELAY PIN INIT
     pinMode(        PUMP_HIGH_PIN,  OUTPUT);
     digitalWrite(   PUMP_HIGH_PIN,  SRELAY_OFF);
+    pinMode(        PUMP_HIGH2_PIN,  OUTPUT);
+    digitalWrite(   PUMP_HIGH2_PIN,  SRELAY_OFF);
     pinMode(        LIGHT_PIN,      OUTPUT);
     digitalWrite(   LIGHT_PIN,      RELAY_OFF);
     pinMode(        BOX_HUMID_PIN,  OUTPUT);
@@ -48,6 +51,9 @@ void setup() {
     pinMode(        BOX_VENT_PIN,   OUTPUT);
     digitalWrite(   BOX_VENT_PIN,   RELAY_OFF);
     Serial.println("\r\n---- ~ SETUP ----");
+
+    // устанавливаем время выключения насоса2, это нужно чтобы запустить цикл для Программы 2
+    pumpHigh2TS_end = 1;
 }
 
 unsigned long loopStart;
@@ -83,23 +89,88 @@ void loop() {
     // RELAY processing:
     // -----------------
 
-    // Управляяем насосом высокого давления
-    if (pumpHighTS_start > 0) {
-        uint32_t dTS = xTime.nowTS - pumpHighTS_start;
-        if (dTS >= timePumpHigh) {
-            pumpHighTS_start = 0;
-            pumpHighTS_end = xTime.now.unixtime();
-            digitalWrite(PUMP_HIGH_PIN, SRELAY_OFF);
-            if (DEBUG) { logEvent("мотор высокого давления: выкл"); }
+    // Управляяем насосом\насосами высокого давления
+    if (PUMP_PROGRAM == 1) {
+        // Program 1
+        if (pumpHighTS_start > 0) {
+            uint32_t dTS = xTime.nowTS - pumpHighTS_start;
+            if (dTS >= timePumpHigh) {
+                pumpHighTS_start = 0;
+                pumpHighTS_end = xTime.now.unixtime();
+                digitalWrite(PUMP_HIGH_PIN, SRELAY_OFF);
+                if (DEBUG) { logEvent("мотор высокого давления: выкл"); }
+            }
+        } else {
+            // включаем мотор высокого давления
+            uint32_t dTS = xTime.nowTS - pumpHighTS_end;
+            if (dTS >= timeoutPumpHigh) {
+                pumpHighTS_end = 0;
+                pumpHighTS_start = xTime.now.unixtime();
+                digitalWrite(PUMP_HIGH_PIN, SRELAY_ON);
+                if (DEBUG) { logEvent("мотор высокого давления: вкл."); }
+            }
         }
-    } else {
-        // включаем мотор высокого давления
-        uint32_t dTS = xTime.nowTS - pumpHighTS_end;
-        if (dTS >= timeoutPumpHigh) {
-            pumpHighTS_end = 0;
-            pumpHighTS_start = xTime.now.unixtime();
-            digitalWrite(PUMP_HIGH_PIN, SRELAY_ON);
-            if (DEBUG) { logEvent("мотор высокого давления: вкл."); }
+    } else if (PUMP_PROGRAM == 2) {
+        // Program 2
+
+        // если насос1 накачивает раствор, то проверяем: затоплен ли поплавок2
+        if (digitalRead(PUMP_HIGH_PIN) == SRELAY_ON) {
+            // если поплавок2 затонул, уровень воды высокий
+            if (digitalRead(FLOAT_SENSOR2_PIN) == LOW) {
+                // отключаем насос1
+                digitalWrite(PUMP_HIGH_PIN, SRELAY_OFF);
+                if (DEBUG) { logEvent("мотор высокого давления1: выкл"); }
+                // запоминаем время выключения насоса1, начинается стадия ожидания пока раствор заполнен
+                pumpHighTS_end = xTime.now.unixtime();
+            }
+        } else {
+            // если идет стадия ожидания пока раствор заполнен
+            if (pumpHighTS_end > 0) {
+                // вычисляем сколько секунд прошло после выключения насоса1 накачивающего раствор
+                uint32_t dTS = xTime.nowTS - pumpHighTS_end;
+                // если прошло 20 секунд, включаем насос2 для откачки воды
+                if (dTS > timeoutPumpHigh2) {
+                    // обнуляем время выключения насоса1, начинается стадия откачки
+                    pumpHighTS_end = 0;
+                    // включаем насос2, для откачки воды
+                    digitalWrite(PUMP_HIGH2_PIN, SRELAY_ON);
+                    if (DEBUG) { logEvent("мотор высокого давления2: вкл"); }
+                    // запоминаем время включения насоса2
+                    pumpHigh2TS_start = xTime.now.unixtime();
+                }
+            }
+
+            // если идет стадия откачки раствора
+            if (pumpHigh2TS_start > 0) {
+                // вычисляем сколько секунд прошло после включения насоса2
+                uint32_t dTS = xTime.nowTS - pumpHigh2TS_start;
+                // если прошла минута работы насоса2, отключаем его
+                if (dTS > timePumpHigh2) {
+                    // отключаем насос2
+                    digitalWrite(PUMP_HIGH2_PIN, SRELAY_OFF);
+                    if (DEBUG) { logEvent("мотор высокого давления2: выкл"); }
+                    // обнуляем время старата насоса2
+                    pumpHigh2TS_start = 0;
+                    // запоминаем время выключения насоса2, начинается новый цикл
+                    pumpHigh2TS_end = xTime.now.unixtime();
+                }
+            }
+
+            // если начат новый цикл
+            if (pumpHigh2TS_end > 0) {
+                // вычисляем сколько секунд прошло после выключения насоса2
+                uint32_t dTS = xTime.nowTS - pumpHigh2TS_end;
+                // если время простоя вышло, и поплавок2 не затоплен (доп проверка)
+                if (dTS > timeoutPumpHigh && digitalRead(FLOAT_SENSOR2_PIN) == HIGH) {
+                    // включаем насос1, накачиваем раствор
+                    digitalWrite(PUMP_HIGH_PIN, SRELAY_ON);
+                    if (DEBUG) { logEvent("мотор высокого давления1: вкл."); }
+                    // запоминаем время включения насоса1
+                    pumpHighTS_start = xTime.now.unixtime();
+                    // обнуляем время выключения насоса1
+                    pumpHigh2TS_end = 0;
+                }
+            }
         }
     }
 

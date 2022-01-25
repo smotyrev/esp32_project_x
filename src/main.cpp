@@ -42,6 +42,8 @@ void setup() {
     // RELAY PIN INIT
     pinMode(        PUMP_HIGH_PIN,  OUTPUT);
     digitalWrite(   PUMP_HIGH_PIN,  SRELAY_OFF);
+    pinMode(        PUMP_HIGH_PIN_HV,  OUTPUT);
+    digitalWrite(   PUMP_HIGH_PIN_HV,  RELAY_OFF);
     pinMode(        PUMP_HIGH2_PIN,  OUTPUT);
     digitalWrite(   PUMP_HIGH2_PIN,  SRELAY_OFF);
     pinMode(        LIGHT_PIN,      OUTPUT);
@@ -98,6 +100,7 @@ void loop() {
                 pumpHighTS_start = 0;
                 pumpHighTS_end = xTime.now.unixtime();
                 digitalWrite(PUMP_HIGH_PIN, SRELAY_OFF);
+                digitalWrite(PUMP_HIGH_PIN_HV, RELAY_OFF);
                 if (DEBUG) { logEvent("мотор высокого давления: выкл"); }
             }
         } else {
@@ -107,6 +110,7 @@ void loop() {
                 pumpHighTS_end = 0;
                 pumpHighTS_start = xTime.now.unixtime();
                 digitalWrite(PUMP_HIGH_PIN, SRELAY_ON);
+                digitalWrite(PUMP_HIGH_PIN_HV, RELAY_ON);
                 if (DEBUG) { logEvent("мотор высокого давления: вкл."); }
             }
         }
@@ -119,6 +123,7 @@ void loop() {
             if (digitalRead(FLOAT_SENSOR2_PIN) == LOW) {
                 // отключаем насос1
                 digitalWrite(PUMP_HIGH_PIN, SRELAY_OFF);
+                digitalWrite(PUMP_HIGH_PIN_HV, RELAY_OFF);
                 if (DEBUG) { logEvent("мотор высокого давления1: выкл"); }
                 // запоминаем время выключения насоса1, начинается стадия ожидания пока раствор заполнен
                 pumpHighTS_end = xTime.now.unixtime();
@@ -164,6 +169,7 @@ void loop() {
                 if (dTS > timeoutPumpHigh && digitalRead(FLOAT_SENSOR2_PIN) == HIGH) {
                     // включаем насос1, накачиваем раствор
                     digitalWrite(PUMP_HIGH_PIN, SRELAY_ON);
+                    digitalWrite(PUMP_HIGH_PIN_HV, RELAY_ON);
                     if (DEBUG) { logEvent("мотор высокого давления1: вкл."); }
                     // запоминаем время включения насоса1
                     pumpHighTS_start = xTime.now.unixtime();

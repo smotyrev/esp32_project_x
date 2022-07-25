@@ -5,8 +5,11 @@
 #include "x_time.h"
 #include "x_temperature_humidity.h"
 
-x_time xTime;
-x_temperature_humidity xTempHumid;
+x_time xTime;                       // Текущее время
+x_temperature_humidity xTempHumid;  // 
+
+uint8_t xPumpProgram = 2;           // Текущая программа управления насосом(ами) для орошения
+bool xPumpProgramForce = false;     // Принудительно включить программу орашения
 
 DateTime startGrow;
 Preferences preferences;
@@ -22,6 +25,7 @@ void setup() {
     xTempHumid.setup();
 
     // Сохраненные настройки
+    // Datetime:
     Serial.println("setup preferences.begin");
     preferences.begin(PREFS_START_GROW, true);
     uint32_t ts = preferences.getUInt(PREFS_KEY_TIMESTAMP, 0);
@@ -30,8 +34,12 @@ void setup() {
     }
     startGrow = DateTime(ts);
     preferences.end();
+    // Program pump:
+    preferences.begin(PREFS_PROGRAM_PUPM, true);
+    xPumpProgram = preferences.putUInt(PREFS_KEY_PP_VAL, xPumpProgram);
+    preferences.end();
 
-    //GreenPonics PH
+    // GreenPonics PH
     EEPROM.begin(32); //needed to permit storage of calibration value in eeprom
     ph.begin();
 
@@ -92,8 +100,35 @@ void loop() {
     // -----------------
 
     // Управляяем насосом\насосами высокого давления
-    if (PUMP_PROGRAM == 1) {
-        // Program 1
+    if (xPumpProgramForce) {
+        // Принудительная подача раствора, согласно программе
+        if (xPumpProgram == 1) {
+            if (digitalRead(PUMP_HIGH_PIN) == SRELAY_OFF) {
+                digitalWrite(PUMP_HIGH_PIN, SRELAY_ON);
+            }
+            if (digitalRead(PUMP_HIGH_PIN_HV) == RELAY_OFF) {
+                digitalWrite(PUMP_HIGH_PIN_HV, RELAY_ON);
+            }
+        } else if (xPumpProgram == 2) {
+            if (digitalRead(PUMP_HIGH_PIN_HV) == RELAY_ON) {
+                // если откачка включена, то выключаем откачку
+                digitalWrite(PUMP_HIGH_PIN_HV, RELAY_OFF);
+            }
+            if (digitalRead(FLOAT_SENSOR2_PIN) == LOW) {
+                if (digitalRead(PUMP_HIGH_PIN) == SRELAY_OFF) {
+                    // если поплавок не затоплен и выключен насос накачки воды, 
+                    // то включаем насос (корни без воды)
+                    digitalWrite(PUMP_HIGH_PIN, SRELAY_ON);
+                }
+            } else if (digitalRead(PUMP_HIGH_PIN) == SRELAY_ON) {
+                // если поплавок затоплен и включен насос накачки воды, 
+                // то выключаем насос (корни в воде)
+                digitalWrite(PUMP_HIGH_PIN, SRELAY_OFF);
+            }
+        }
+    } else if (xPumpProgram == 1) {
+        // Программа 1: Вклюючается периодически на несколько секунд.
+        //              Для распыления через форсунки
         if (pumpHighTS_start > 0) {
             uint32_t dTS = xTime.nowTS - pumpHighTS_start;
             if (dTS >= timePumpHigh) {
@@ -114,8 +149,9 @@ void loop() {
                 if (DEBUG) { logEvent("мотор высокого давления: вкл."); }
             }
         }
-    } else if (PUMP_PROGRAM == 2) {
-        // Program 2
+    } else if (xPumpProgram == 2) {
+        // Программа 2: Включаем периодически, накачиваем раствор, ждем 20 секунд, откачиваем раствор.
+        //              Для погружения корней в раствор
 
         // если насос1 накачивает раствор, то проверяем: затоплен ли поплавок2
         if (digitalRead(PUMP_HIGH_PIN) == SRELAY_ON) {
@@ -178,6 +214,17 @@ void loop() {
                 }
             }
         }
+    }
+
+    switch (xPumpProgram) {
+    case 1:
+        logToScreen("d16.txt", "Prog1");
+        break;
+    case 2:
+        logToScreen("d16.txt", "Prog2");
+        break;
+    default:
+        break;
     }
 
     // Управляем светом
@@ -368,6 +415,36 @@ inline void processConsoleCommand() {
             preferences.end();
             delay(5000);
             ESP.restart();
+        }
+    }
+
+    cmd = "p11=PN+";                // Кнопка выбора программы, смена на след. прогр-му
+    if (str.rfind(cmd, 0) == 0) {
+        str.erase(0, strlen(cmd));
+        if (xPumpProgram == MAX_PROGRAMS) {
+            xPumpProgram = 1;
+        } else {
+            xPumpProgram++;
+        }
+        preferences.begin(PREFS_PROGRAM_PUPM, false);
+        preferences.remove(PREFS_KEY_PP_VAL);
+        preferences.putUInt(PREFS_KEY_PP_VAL, xPumpProgram);
+        preferences.end();
+    }
+
+    cmd = "p12=";                    // Кнопка включения насосов принудительно, согласно выбраной программе
+    if (str.rfind(cmd, 0) == 0) {
+        str.erase(0, strlen(cmd));
+        cmd = "ForceNON";
+        if (str.rfind(cmd, 0) == 0) {
+            str.erase(0, strlen(cmd));
+            xPumpProgramForce = true;
+        } else {
+            cmd = "ForceNOFF";
+            if (str.rfind(cmd, 0) == 0) {
+                str.erase(0, strlen(cmd));
+                xPumpProgramForce = true;
+            }
         }
     }
 }

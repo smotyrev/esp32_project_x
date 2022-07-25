@@ -56,9 +56,7 @@
 // Реле пины:
 //////////////
 
-// Программа 1: Вклюючается периодически на несколько секунд.
-// Программа 2: Включаем периодически, накачиваем раствор, ждем 20 секунд, откачиваем раствор.
-#define PUMP_PROGRAM 2
+#define MAX_PROGRAMS 2
 
 // Программа 1: Насос высокого давления. Накачиваем раствор.
 #define PUMP_HIGH_PIN   23          // насос высокого давления
@@ -102,6 +100,9 @@
 #define PREFS_START_GROW "start-grow"
 #define PREFS_KEY_TIMESTAMP "TS"
 #define TERMINATE_SCREEN_POSTFIX char(255)+char(255)+char(255)
+
+#define PREFS_PROGRAM_PUPM "pp"
+#define PREFS_KEY_PP_VAL "ppval"
 
 inline void logEvent(const String &event) {
     Serial.println("\n\t[" + event + "]");

@@ -44,8 +44,8 @@
 
 // Пины для коннекта Arduino:
 // i2c : arduino -> esp32
-#define I2C_SDA_PIN     21
-#define I2C_SCL_PIN     22
+#define I2C_SDA_PIN     SCL
+#define I2C_SCL_PIN     SDA
 #define I2C_ADDR        8       // номер девайса, должен быть выставлен одинаково на обоих концах
 
 // поплавок, датчик воды

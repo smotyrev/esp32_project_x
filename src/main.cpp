@@ -8,7 +8,7 @@
 x_time xTime;                       // Текущее время
 x_temperature_humidity xTempHumid;  // 
 
-uint8_t xPumpProgram = 2;           // Текущая программа управления насосом(ами) для орошения
+int xPumpProgram;                   // Текущая программа управления насосом(ами) для орошения
 bool xPumpProgramForce = false;     // Принудительно включить программу орашения
 
 DateTime startGrow;
@@ -36,7 +36,7 @@ void setup() {
     preferences.end();
     // Program pump:
     preferences.begin(PREFS_PROGRAM_PUPM, true);
-    xPumpProgram = preferences.putUInt(PREFS_KEY_PP_VAL, xPumpProgram);
+    xPumpProgram = preferences.getInt(PREFS_KEY_PP_VAL, 2);
     preferences.end();
 
     // GreenPonics PH
@@ -75,8 +75,9 @@ void loop() {
     if (DEBUG) {
 	    Serial.println("\r\n-------------------");
         ph.calibration(phVoltage, phTemperature); // calibration process by Serail CMD
-        processConsoleCommand();
     }
+
+    processConsoleCommand();
 
     // печатаем время
     xTime.loop();
@@ -215,17 +216,7 @@ void loop() {
             }
         }
     }
-
-    switch (xPumpProgram) {
-    case 1:
-        logToScreen("d16.txt", "Prog1");
-        break;
-    case 2:
-        logToScreen("d16.txt", "Prog2");
-        break;
-    default:
-        break;
-    }
+    logToScreen("d16.txt", (String) "Program " + xPumpProgram);
 
     // Управляем светом
     uint32_t deltaSeconds = xTime.nowTS - startGrow.unixtime();
@@ -310,7 +301,7 @@ void loop() {
 
 inline void processConsoleCommand() {
     char _char;
-    char _string[] = "                      ";
+    char _string[] = "                                               ";
     for (char &i : _string) {
         if (Serial.available()) {
             _char = (char) Serial.read();
@@ -318,9 +309,9 @@ inline void processConsoleCommand() {
                 if (VERBOSE) {
                     Serial.println((String) "OK CHAR = " + _char);
                 }
-                i = _char;
-                continue;
+                // continue;
             }
+            i = _char;
         }
     }
     if (VERBOSE) {
@@ -418,18 +409,26 @@ inline void processConsoleCommand() {
         }
     }
 
+    cmd = "testCommand";
+    if (str.rfind(cmd, 0) == 0) {
+        str.erase(0, strlen(cmd));
+        Serial.println("\n\tOK!\n");
+    }
+
     cmd = "p11=PN+";                // Кнопка выбора программы, смена на след. прогр-му
     if (str.rfind(cmd, 0) == 0) {
         str.erase(0, strlen(cmd));
-        if (xPumpProgram == MAX_PROGRAMS) {
+        if (xPumpProgram >= MAX_PROGRAMS) {
             xPumpProgram = 1;
         } else {
             xPumpProgram++;
         }
+        Serial.print("\nSave preference, xPumpProgram=" + xPumpProgram);
         preferences.begin(PREFS_PROGRAM_PUPM, false);
         preferences.remove(PREFS_KEY_PP_VAL);
-        preferences.putUInt(PREFS_KEY_PP_VAL, xPumpProgram);
+        preferences.putInt(PREFS_KEY_PP_VAL, xPumpProgram);
         preferences.end();
+        Serial.println("\tOK!");
     }
 
     cmd = "p12=";                    // Кнопка включения насосов принудительно, согласно выбраной программе
@@ -438,14 +437,21 @@ inline void processConsoleCommand() {
         cmd = "ForceNON";
         if (str.rfind(cmd, 0) == 0) {
             str.erase(0, strlen(cmd));
+            Serial.println("\nPreferences saved, xPumpProgramForce=true");
             xPumpProgramForce = true;
         } else {
             cmd = "ForceNOFF";
             if (str.rfind(cmd, 0) == 0) {
                 str.erase(0, strlen(cmd));
-                xPumpProgramForce = true;
+                Serial.println("\nPreferences saved, xPumpProgramForce=false");
+                xPumpProgramForce = false;
             }
         }
+    }
+
+    if (str.length() > 0) {
+        Serial.print("\nUnknown command: ");
+        Serial.println(str.c_str());
     }
 }
 

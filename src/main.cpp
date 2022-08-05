@@ -69,6 +69,8 @@ void setup() {
 unsigned long loopStart;
 
 void loop() {
+    processConsoleCommand();
+    
     loopStart = millis();
     loopPh();
 
@@ -76,8 +78,6 @@ void loop() {
 	    Serial.println("\r\n-------------------");
         ph.calibration(phVoltage, phTemperature); // calibration process by Serail CMD
     }
-
-    processConsoleCommand();
 
     // печатаем время
     xTime.loop();
@@ -305,11 +305,11 @@ inline void processConsoleCommand() {
     for (char &i : _string) {
         if (Serial.available()) {
             _char = (char) Serial.read();
-            if (std::isdigit(_char) || std::isalpha(_char)) {
+            if (std::iscntrl(_char)) {
                 if (VERBOSE) {
                     Serial.println((String) "OK CHAR = " + _char);
                 }
-                // continue;
+                continue;
             }
             i = _char;
         }
@@ -415,7 +415,7 @@ inline void processConsoleCommand() {
         Serial.println("\n\tOK!\n");
     }
 
-    cmd = "p11=PN+";                // Кнопка выбора программы, смена на след. прогр-му
+    cmd = "PN+";                // Кнопка выбора программы, смена на след. прогр-му
     if (str.rfind(cmd, 0) == 0) {
         str.erase(0, strlen(cmd));
         if (xPumpProgram >= MAX_PROGRAMS) {
@@ -431,25 +431,21 @@ inline void processConsoleCommand() {
         Serial.println("\tOK!");
     }
 
-    cmd = "p12=";                    // Кнопка включения насосов принудительно, согласно выбраной программе
+    // Кнопка включения насосов принудительно, согласно выбраной программе
+    cmd = "ForceNON";
     if (str.rfind(cmd, 0) == 0) {
         str.erase(0, strlen(cmd));
-        cmd = "ForceNON";
-        if (str.rfind(cmd, 0) == 0) {
-            str.erase(0, strlen(cmd));
-            Serial.println("\nPreferences saved, xPumpProgramForce=true");
-            xPumpProgramForce = true;
-        } else {
-            cmd = "ForceNOFF";
-            if (str.rfind(cmd, 0) == 0) {
-                str.erase(0, strlen(cmd));
-                Serial.println("\nPreferences saved, xPumpProgramForce=false");
-                xPumpProgramForce = false;
-            }
-        }
+        Serial.println("\nPreferences saved, xPumpProgramForce=true");
+        xPumpProgramForce = true;
+    }
+    cmd = "ForceNOFF";
+    if (str.rfind(cmd, 0) == 0) {
+        str.erase(0, strlen(cmd));
+        Serial.println("\nPreferences saved, xPumpProgramForce=false");
+        xPumpProgramForce = false;
     }
 
-    if (str.length() > 0) {
+    if (VERBOSE && str.length() > 0) {
         Serial.print("\nUnknown command: ");
         Serial.println(str.c_str());
     }

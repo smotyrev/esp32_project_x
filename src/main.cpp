@@ -70,7 +70,7 @@ unsigned long loopStart;
 
 void loop() {
     processConsoleCommand();
-    
+
     loopStart = millis();
     loopPh();
 
@@ -305,13 +305,13 @@ inline void processConsoleCommand() {
     for (char &i : _string) {
         if (Serial.available()) {
             _char = (char) Serial.read();
-            if (std::iscntrl(_char)) {
+            if (std::isdigit(_char) || std::isalpha(_char) || std::ispunct(_char)) {
                 if (VERBOSE) {
                     Serial.println((String) "OK CHAR = " + _char);
                 }
+                i = _char;
                 continue;
             }
-            i = _char;
         }
     }
     if (VERBOSE) {

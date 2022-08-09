@@ -31,7 +31,6 @@
 
 // Время каждого цикла main::loop() в миллисекундах
 #define LOOP_MS_DEBUG 2000
-#define LOOP_MS_NORMAL 1000
 
 // Температура и влажность
 #define DHT_PIN         15      // GPIO-пин, который подключен к датчику DHT
@@ -109,7 +108,7 @@ inline void logEvent(const String &event) {
 }
 
 inline void logToScreen(const String &key, const String &value) {
-    Serial.print((String) key + "=\"" + value + "\"" + TERMINATE_SCREEN_POSTFIX);
+    Serial.print((String) TERMINATE_SCREEN_POSTFIX + key + "=\"" + value + "\"" + TERMINATE_SCREEN_POSTFIX);
 }
 
 inline void logWire(const String &prefix, const String &postfix) {

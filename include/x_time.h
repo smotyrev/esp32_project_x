@@ -14,6 +14,7 @@ public:
 
 private:
     uint32_t fakeNow = 0;
+    unsigned long fakeMillis = 0;
 };
 
 

@@ -18,8 +18,9 @@ float phVoltage,phValue,phTemperature = 25;
 DFRobot_ESP_PH ph;
 
 void setup() {
-    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
     Serial.begin(9600);
+    Serial.println("\r\n---- ~ SETUP ----");
+    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN, (uint32_t) 4000);
 
     xTime.setup();
     xTempHumid.setup();
@@ -67,11 +68,13 @@ void setup() {
 }
 
 unsigned long loopStart;
-
+String d14_old = "";
+int d16_old;
+float d12_old;
 void loop() {
-    processConsoleCommand();
-
     loopStart = millis();
+    
+    processConsoleCommand();
     loopPh();
 
     if (DEBUG) {
@@ -90,9 +93,15 @@ void loop() {
         Serial.print((String) "Float: " + digitalRead(FLOAT_SENSOR_PIN));
     } else {
         if (digitalRead(FLOAT_SENSOR_PIN) == LOW) { // поплавок тонет, уровень высокий
-            logToScreen("d14.txt", "HIGH");
+            if (d14_old != "HIGH") {
+                d14_old = "HIGH";
+                logToScreen("d14.txt", "HIGH");
+            }
         } else {
-            logToScreen("d14.txt", "LOW");
+            if (d14_old != "LOW") {
+                d14_old = "LOW";
+                logToScreen("d14.txt", "LOW");
+            }
         }
     }
 
@@ -216,7 +225,10 @@ void loop() {
             }
         }
     }
-    logToScreen("d16.txt", (String) "Program " + xPumpProgram);
+    if (d16_old != xPumpProgram) {
+        d16_old = xPumpProgram;
+        logToScreen("d16.txt", (String) "Program " + xPumpProgram);
+    }
 
     // Управляем светом
     uint32_t deltaSeconds = xTime.nowTS - startGrow.unixtime();
@@ -294,30 +306,31 @@ void loop() {
 
     if (DEBUG) {
         delay(LOOP_MS_DEBUG - (millis() - loopStart));
-    } else {
-        delay(min(max((int) (LOOP_MS_NORMAL - (millis() - loopStart)), 0), LOOP_MS_NORMAL));
     }
 }
 
 inline void processConsoleCommand() {
+    if (!Serial.available()) {
+        return;
+    }
+
+    std::string str;
     char _char;
-    char _string[] = "                                               ";
-    for (char &i : _string) {
-        if (Serial.available()) {
-            _char = (char) Serial.read();
-            if (std::isdigit(_char) || std::isalpha(_char) || std::ispunct(_char)) {
-                if (VERBOSE) {
-                    Serial.println((String) "OK CHAR = " + _char);
-                }
-                i = _char;
-                continue;
+    do {
+        _char = (char) Serial.read();
+        if (std::isdigit(_char) || std::isalpha(_char) || std::ispunct(_char)) {
+            if (VERBOSE) {
+                Serial.println((String) "OK CHAR = " + _char);
             }
+            str.append(1, _char);
+            continue;
         }
-    }
+    } while (Serial.available());
+
     if (VERBOSE) {
-        Serial.println((String) "OK STRING = " + _string);
+        Serial.println((String) "ConsoleCommand: " + str.c_str());
     }
-    std::string str = _string;
+
     rtrim(str);
     ltrim(str);
 
@@ -468,8 +481,10 @@ inline void loopPh() {
             Serial.print(" pH:");
             Serial.println(phValue, 4);
         } else {
-            Serial.print((String) TERMINATE_SCREEN_POSTFIX);
-            logToScreen("d12.txt", (String) phValue);
+            if (d12_old != phValue) {
+                d12_old = phValue;
+                logToScreen("d12.txt", (String) phValue);
+            }
         }
 	}
 }

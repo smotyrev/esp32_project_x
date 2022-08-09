@@ -4,9 +4,10 @@
 
 void x_time::setup() {
     now = RTClib::now();
-    if (DEBUG && (now.year() > 2021 || now.month() > 12 || now.day() > 31)) {
+    if (now.hour() > 24 && now.minute() > 60 && now.second() > 60) {
         fakeNow = now.unixtime();
         now = DateTime(fakeNow);
+        fakeMillis = millis();
     }
     Serial.println((String) "\n\nDate: fakeNow=" + fakeNow);
     Serial.print(now.year(), DEC);
@@ -26,11 +27,19 @@ void x_time::setup() {
 }
 
 void x_time::loop() {
-    now = RTClib::now();
-    if (DEBUG && fakeNow != 0) {
-        Serial.print("Fake! ");
-        now = DateTime(fakeNow++);
+    if (fakeNow > 0) {
+        if (millis() - fakeMillis > 1000) {
+            now = DateTime(fakeNow++);
+            fakeMillis = millis();
+        }
+    } else {
+        now = RTClib::now();
     }
+    
+    if (nowTS == now.unixtime()) {
+        return;
+    }
+
     nowTS = now.unixtime();
 
     if (DEBUG) {
@@ -40,8 +49,8 @@ void x_time::loop() {
         );
     } else {
         // Date
-        logToScreen("time1.txt", (String) now.day() + "-" + now.month() + "-" + now.year());
+        logToScreen("time1.txt", (String) (fakeNow > 0 ? "?" : "") + now.day() + "-" + now.month() + "-" + now.year());
         // Time
-        logToScreen("time2.txt", (String) now.hour() + ":" + now.minute() + ":" + now.second());
+        logToScreen("time2.txt", (String) (fakeNow > 0 ? "?" : "") + now.hour() + ":" + now.minute() + ":" + now.second());
     }
 }

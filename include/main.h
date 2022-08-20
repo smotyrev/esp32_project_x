@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include "global.h"
 #include "DFRobot_ESP_PH.h"
+#include "GravityTDS.h"
 
 // насос высокого давления
 uint32_t pumpHighTS_start = 0;

@@ -37,9 +37,13 @@
 #define DHT_TYPE        DHT22   // Модель используемого датчика (DHT11, DHT21 или DHT22)
 #define DS18B20_PIN     4       // GPIO where the DS18B20 is connected to
 
+// PH meter
 #define PH_PIN          32 //the esp gpio data pin number
 #define ESPADC          4096.0   //the esp Analog Digital Convertion value
 #define ESPVOLTAGE      3300 //the esp voltage supply value
+
+// TDS meter
+#define TDS_PIN         25
 
 // Пины для коннекта Arduino:
 // i2c : arduino -> esp32
@@ -64,7 +68,7 @@
 #define timePumpHigh    15          // секунд - время работы насоса
 
 // Программа 2: Насос высокого давления. Откачиваем раствор.
-#define PUMP_HIGH2_PIN   25         // насос высокого давления 2
+#define PUMP_HIGH2_PIN   5          // насос высокого давления 2
 #define timeoutPumpHigh2    20      // секунд - время, после срабатывания поплавка 2, после которого нужно включать 1ый насос
 #define timePumpHigh2    60         // секунд - время работы 2ого насоса
 

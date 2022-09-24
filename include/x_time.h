@@ -4,13 +4,24 @@
 #include <DS3231.h>
 #include "global.h"
 
-class x_time {
+//      Команды:
+//          1) Установка даты и времени, для часов с батарейкой:
+//              `datetimeYYMMDDwHHMMSS` (прим. `datetime 2104165223000` => 16 апреля 2021 года 22:30:00, пятница)
+//                  YY - Год
+//                  MM - Месяц
+//                  DD - День
+//                  w - Day Of Week (день недели 1-7)
+//                  HH - Час (0-23)
+//                  MM - Минута
+//          2) Установить дату начала цикла роста:
+//              `startGrowYYMMDDHH` (прим. `startGrow 21041622` => 16 апреля 2021 года в 22 часа)
+
+class x_time : public main_looper {
 
 public:
-    DateTime now;
-    uint32_t nowTS;
     void setup();
-    void loop();
+    void loop(bool forceDataSend);
+    bool processConsoleCommand(std::string &cmd);
 
 private:
     uint32_t fakeNow = 0;

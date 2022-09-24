@@ -13,13 +13,11 @@
 
 #include "global.h"
 
-class x_temperature_humidity {
+class x_temperature_humidity : public main_looper {
 public:
-    float boxHumid;
-
     void setup();
-
-    void loop();
+    void loop(bool forceDataSend);
+    bool processConsoleCommand(std::string &cmd);
 };
 
 

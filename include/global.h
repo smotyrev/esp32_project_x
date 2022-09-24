@@ -4,6 +4,16 @@
 #include <DS3231.h>
 #include <Preferences.h>
 
+#include <stdio.h>
+#include <iostream>   
+#include <string>  
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "driver/uart.h"
+#include "driver/gpio.h"
+#include "sdkconfig.h"
+#include "esp_log.h"
+
 //#define RELAY_ON LOW        // для нормально-замкнутых реле
 //#define RELAY_OFF HIGH      // для нормально-замкнутых реле
 #define RELAY_ON HIGH       // для нормально-разомкнутых реле
@@ -12,22 +22,10 @@
 #define SRELAY_OFF HIGH     // для соленойдного реле
 
 // true - Если нужно в TTY-мониторе удобно смотреть все данные по датчикам и событиям.
-//      В этом режиме можно менять настройки, путем отправки команд в консоли.
-//      Команды:
-//          1) Установка даты и времени, для часов с батарейкой:
-//              `datetime YYMMDDwHHMMSS` (прим. `datetime 2104165223000` => 16 апреля 2021 года 22:30:00, пятница)
-//                  YY - Год
-//                  MM - Месяц
-//                  DD - День
-//                  w - Day Of Week (день недели 1-7)
-//                  HH - Час (0-23)
-//                  MM - Минута
-//          2) Установить дату начала цикла роста:
-//              `startGrow YYMMDDHH` (прим. `startGrow 21041622` => 16 апреля 2021 года в 22 часа)
 // false - Если нужен боевой режим, для отправки данных на экран
 #define DEBUG false
 // true - Печатать больше DEBUG данных, помимо датчиков и событий реле
-#define VERBOSE false
+#define VERBOSE true
 
 // Время каждого цикла main::loop() в миллисекундах
 #define LOOP_MS_DEBUG 2000
@@ -102,7 +100,7 @@
 
 #define PREFS_START_GROW "start-grow"
 #define PREFS_KEY_TIMESTAMP "TS"
-#define TERMINATE_SCREEN_POSTFIX char(255)+char(255)+char(255)
+#define TERMINATE_SCREEN_POSTFIX "\xFF\xFF\xFF" //char(255)+char(255)+char(255)
 
 #define PREFS_PROGRAM_PUPM "pp"
 #define PREFS_KEY_PP_VAL "ppval"
@@ -111,8 +109,15 @@ inline void logEvent(const String &event) {
     Serial.println("\n\t[" + event + "]");
 }
 
-inline void logToScreen(const String &key, const String &value) {
-    Serial.print((String) TERMINATE_SCREEN_POSTFIX + key + "=\"" + value + "\"" + TERMINATE_SCREEN_POSTFIX);
+const byte ndt[3] = {255,255,255};
+inline void logToScreen(std::string key, std::string value) {
+    // Serial.print((String) TERMINATE_SCREEN_POSTFIX + key + "=\"" + value + "\"" + TERMINATE_SCREEN_POSTFIX);
+    std::string data = key + "=\"" + value + "\"";
+    auto res = uart_write_bytes(UART_NUM_2, (const char*) data.c_str(), data.length());
+    uart_write_bytes(UART_NUM_2, ndt, 3);
+    if (DEBUG || VERBOSE) {
+        Serial.println(("logToScreen(" + data + "); res=" + std::to_string(res)).c_str());
+    }
 }
 
 inline void logWire(const String &prefix, const String &postfix) {
@@ -142,5 +147,26 @@ static inline void rtrim(std::string &s) {
         return !std::isspace(ch);
     }).base(), s.end());
 }
+
+class main_data {
+public:
+    uint32_t nowTS;
+    uint8_t nowHour;
+    uint8_t nowMinute;
+    float boxHumid = 0;
+    DateTime startGrow;                 // Время начала роста
+};
+
+// Здесь хранятся основные переменные
+static main_data mainData;
+// Основные настройки
+static Preferences preferences;
+
+class main_looper {
+public:
+    virtual void setup() = 0;
+    virtual void loop(bool forceDataSend) = 0;
+    virtual bool processConsoleCommand(std::string &cmd) = 0;
+};
 
 #endif //ESP32_PROJECT_X_GLOBAL_H

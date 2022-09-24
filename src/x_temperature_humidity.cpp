@@ -50,12 +50,12 @@ void x_temperature_humidity::setup() {
     sensorDS18B20.requestTemperatures();
 }
 
-float d01_old;
-float d02_old;
-float d31_old;
-float d32_old;
-float d11_old;
-void x_temperature_humidity::loop() {
+float d01_old = 0;
+float d02_old = 0;
+float d31_old = 0;
+float d32_old = 0;
+float d11_old = 0;
+void x_temperature_humidity::loop(bool forceDataSend) {
     if (DEBUG) {
         Serial.print("Temperature & Humidity:");
     }
@@ -66,22 +66,20 @@ void x_temperature_humidity::loop() {
     dht.temperature().getEvent(&dhtVal);
     if (DEBUG) {
         Serial.print((String) " | DHT22: " + dhtVal.temperature + "C, ");
-    } else {
-        if (!isnan(dhtVal.temperature) && d01_old != dhtVal.temperature) {
-            d01_old = dhtVal.temperature;
-            logToScreen("d01.txt", (String) dhtVal.temperature + " C");
-        }
+    }
+    if (forceDataSend || !isnan(dhtVal.temperature) && d01_old != dhtVal.temperature) {
+        d01_old = dhtVal.temperature;
+        logToScreen("d01.txt", std::to_string(dhtVal.temperature) + " C");
     }
 
     dht.humidity().getEvent(&dhtVal);
-    boxHumid = dhtVal.relative_humidity;
+    mainData.boxHumid = dhtVal.relative_humidity;
     if (DEBUG) {
         Serial.print((String) dhtVal.relative_humidity + "%");
-    } else {
-        if (!isnan(dhtVal.relative_humidity) && d02_old != dhtVal.relative_humidity) {
-            d02_old = dhtVal.relative_humidity;
-            logToScreen("d02.txt", (String) dhtVal.relative_humidity + " %");
-        }
+    }
+    if (forceDataSend || !isnan(dhtVal.relative_humidity) && d02_old != dhtVal.relative_humidity) {
+        d02_old = dhtVal.relative_humidity;
+        logToScreen("d02.txt", std::to_string(dhtVal.relative_humidity)  + " %");
     }
 
     auto Temperature = sht20.readTemperature();
@@ -89,15 +87,14 @@ void x_temperature_humidity::loop() {
     // печатаем температуру и влвжность (SHT20)
     if (DEBUG) {
         Serial.print((String) " | STH20: " + Temperature + "C, " + Humidity + "%");
-    } else {
-        if (d31_old != Temperature) {
-            d31_old = Temperature;
-            logToScreen("d31.txt", (String) Temperature + " C");
-        }
-        if (d32_old != Humidity) {
-            d32_old = Humidity;
-            logToScreen("d32.txt", (String) Humidity + " %");
-        }
+    }
+    if (forceDataSend || d31_old != Temperature) {
+        d31_old = Temperature;
+        logToScreen("d31.txt", std::to_string(Temperature) + " C");
+    }
+    if (forceDataSend || d32_old != Humidity) {
+        d32_old = Humidity;
+        logToScreen("d32.txt", std::to_string(Humidity) + " %");
     }
 
     // печатаем температура DS18B20 sensor
@@ -109,14 +106,17 @@ void x_temperature_humidity::loop() {
     }
     if (DEBUG) {
         Serial.print((String) " | DS18B20: " + temperatureDS18B20 + "C");
-    } else {
-        if (d11_old != temperatureDS18B20) {
-            d11_old = temperatureDS18B20;
-            logToScreen("d11.txt", (String) temperatureDS18B20 + " C");
-        }
+    }
+    if (d11_old != temperatureDS18B20) {
+        d11_old = temperatureDS18B20;
+        logToScreen("d11.txt", std::to_string(temperatureDS18B20) + " C");
     }
 
     if (DEBUG) {
         Serial.println();
     }
+}
+
+bool x_temperature_humidity::processConsoleCommand(std::string &cmd) {
+    return false;
 }

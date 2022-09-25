@@ -29,6 +29,9 @@ float tdsValue = 0;
 int pumpProgram = 1;                // Текущая программа управления насосом(ами) для орошения
 bool pumpProgramForce = false;      // Принудительно включить программу орашения
 
+int lightProgram = 1;
+bool lightProgramForce = false;
+
 void x_logic::setup() {
     // RELAY PIN INIT
     pinMode(        PUMP_HIGH_PIN,  OUTPUT);
@@ -228,8 +231,46 @@ void x_logic::loop(bool forceDataSend) {
         logToScreen("d16.txt", "Program " + std::to_string(pumpProgram));
     }
 
-    // Управляем светом
+
     uint32_t deltaSeconds = mainData.nowTS - mainData.startGrow.unixtime();
+    if (lightProgramForce) {
+        // Принудительная включение света
+        if (isLightOn == false) {
+            isLightOn = true;
+            digitalWrite(LIGHT_PIN, RELAY_ON);
+            if (DEBUG) { logEvent("свет: вкл."); }
+        }
+    } else if (lightProgram == 1) {
+        // Программа 1: 12x12
+        auto deltaHours = deltaSeconds / 60 / 60 / 12;
+        logEvent((String) "deltaHours=" + deltaHours);
+        if (deltaHours % 2) { //первая половина дня
+            if (isLightOn == false) {
+                isLightOn = true;
+                digitalWrite(LIGHT_PIN, RELAY_ON);
+                if (DEBUG) { logEvent("свет: вкл."); }
+            }
+        } else { //вторая половина дня
+            if (isLightOn == true) {
+                isLightOn = false;
+                digitalWrite(LIGHT_PIN, RELAY_OFF);
+                if (DEBUG) { logEvent("свет: выкл."); }
+            }
+        }
+    } else if (lightProgram == 2) {
+        // Программа 2: 16x8
+        auto deltaHours = deltaSeconds / 60 / 60;
+        auto numberOfDays = deltaHours / 24;
+        deltaHours - numberOfDays * 24;
+    } else if (lightProgram == 3) {
+
+    } else if (lightProgram == 4) {
+
+    }
+
+
+
+    // Управляем светом
     uint32_t deltaDays = deltaSeconds / (24 * 60 * 60);
     if (DEBUG && VERBOSE) {
         logEvent((String) "V: deltaSeconds=" + deltaSeconds + " deltaDays=" + deltaDays);

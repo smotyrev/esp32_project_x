@@ -8,12 +8,15 @@
 class x_logic : public main_looper {
 
 public:
-    void setup();
+    void setup(main_data &data);
     void loop(bool forceDataSend);
     bool processConsoleCommand(std::string &cmd);
 
 protected:
     void loopPhAndPpm(bool forceDataSend);
+
+private:
+    main_data *mData;
 };
 
 

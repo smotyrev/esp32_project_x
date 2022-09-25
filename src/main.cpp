@@ -10,6 +10,8 @@
 const int uart_buffer_size = (1024);
 QueueHandle_t uart_queue;
 
+static main_data mainData;         // Здесь хранятся основные переменные
+
 x_time xTime;
 x_temperature_humidity xTempHumid;
 x_logic xLogic;
@@ -37,7 +39,7 @@ void setup() {
 
     for (auto i = std::begin(mainLoopers); i != std::end(mainLoopers); ++i) {
         auto item = *i;
-        item->setup();
+        item->setup(mainData);
     }
 
     Serial.println("\r\n---- ~ SETUP ----");

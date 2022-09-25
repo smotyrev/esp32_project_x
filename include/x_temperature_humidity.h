@@ -15,9 +15,12 @@
 
 class x_temperature_humidity : public main_looper {
 public:
-    void setup();
+    void setup(main_data &data);
     void loop(bool forceDataSend);
     bool processConsoleCommand(std::string &cmd);
+    
+private:
+    main_data *mData;
 };
 
 

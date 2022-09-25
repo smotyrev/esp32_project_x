@@ -19,11 +19,12 @@
 class x_time : public main_looper {
 
 public:
-    void setup();
+    void setup(main_data &data);
     void loop(bool forceDataSend);
     bool processConsoleCommand(std::string &cmd);
 
 private:
+    main_data *mData;
     uint32_t fakeNow = 0;
     unsigned long fakeMillis = 0;
 };

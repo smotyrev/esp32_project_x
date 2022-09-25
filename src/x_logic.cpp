@@ -32,7 +32,8 @@ bool pumpProgramForce = false;      // Принудительно включит
 int lightProgram = 1;
 bool lightProgramForce = false;
 
-void x_logic::setup() {
+void x_logic::setup(main_data &data) {
+    mData = &data;
     // RELAY PIN INIT
     pinMode(        PUMP_HIGH_PIN,  OUTPUT);
     digitalWrite(   PUMP_HIGH_PIN,  SRELAY_OFF);
@@ -51,18 +52,23 @@ void x_logic::setup() {
     pinMode(FLOAT_SENSOR_PIN, INPUT_PULLUP); // initialize the pushbutton pin as an input
     pinMode(FLOAT_SENSOR2_PIN, INPUT_PULLUP);
 
-    preferences.begin(PREFS_START_GROW, true);
-    uint32_t ts = preferences.getUInt(PREFS_KEY_TIMESTAMP, 0);
+    mData->preferences.begin(PREFS_START_GROW, true);
+    uint32_t ts = mData->preferences.getUInt(PREFS_KEY_TIMESTAMP, 0);
     if (DEBUG) {
         Serial.println((String) "[PREF GET] Start grow unixtime: " + ts);
     }
-    mainData.startGrow = DateTime(ts);
-    preferences.end();
+    mData->startGrow = DateTime(ts);
+    mData->preferences.end();
     // Program pump:
-    preferences.begin(PREFS_PROGRAM_PUPM, true);
-    pumpProgram = preferences.getInt(PREFS_KEY_PP_VAL, 2);
+    mData->preferences.begin(PREFS_PROGRAM_PUPM, true);
+    pumpProgram = mData->preferences.getInt(PREFS_KEY_PP_VAL, 2);
     Serial.println((String) "Pump Program: " + pumpProgram);
-    preferences.end();
+    mData->preferences.end();
+
+    mData->preferences.begin(PREFS_LIGHT, true);
+    lightProgram = mData->preferences.getInt(PREFS_KEY_LI_VAL, 1);
+    Serial.println((String) "Light Program: " + lightProgram);
+    mData->preferences.end();
 
     // GreenPonics PH
     EEPROM.begin(32); //needed to permit storage of calibration value in eeprom
@@ -86,6 +92,7 @@ void x_logic::setup() {
 
 int d14_old = -1;
 int d16_old = -1;
+int d05_old = -1;
 float d12_old = 0;
 void x_logic::loop(bool forceDataSend) {
     loopPhAndPpm(forceDataSend);
@@ -141,20 +148,20 @@ void x_logic::loop(bool forceDataSend) {
         // Программа 1: Вклюючается периодически на несколько секунд.
         //              Для распыления через форсунки
         if (pumpHighTS_start > 0) {
-            uint32_t dTS = mainData.nowTS - pumpHighTS_start;
+            uint32_t dTS = mData->nowTS - pumpHighTS_start;
             if (dTS >= timePumpHigh) {
                 pumpHighTS_start = 0;
-                pumpHighTS_end = mainData.nowTS;
+                pumpHighTS_end = mData->nowTS;
                 digitalWrite(PUMP_HIGH_PIN, SRELAY_OFF);
                 digitalWrite(PUMP_HIGH_PIN_HV, RELAY_OFF);
                 if (DEBUG) { logEvent("мотор высокого давления: выкл"); }
             }
         } else {
             // включаем мотор высокого давления
-            uint32_t dTS = mainData.nowTS - pumpHighTS_end;
+            uint32_t dTS = mData->nowTS - pumpHighTS_end;
             if (dTS >= timeoutPumpHigh) {
                 pumpHighTS_end = 0;
-                pumpHighTS_start = mainData.nowTS;
+                pumpHighTS_start = mData->nowTS;
                 digitalWrite(PUMP_HIGH_PIN, SRELAY_ON);
                 digitalWrite(PUMP_HIGH_PIN_HV, RELAY_ON);
                 if (DEBUG) { logEvent("мотор высокого давления: вкл."); }
@@ -173,13 +180,13 @@ void x_logic::loop(bool forceDataSend) {
                 digitalWrite(PUMP_HIGH_PIN_HV, RELAY_OFF);
                 if (DEBUG) { logEvent("мотор высокого давления1: выкл"); }
                 // запоминаем время выключения насоса1, начинается стадия ожидания пока раствор заполнен
-                pumpHighTS_end = mainData.nowTS;
+                pumpHighTS_end = mData->nowTS;
             }
         } else {
             // если идет стадия ожидания пока раствор заполнен
             if (pumpHighTS_end > 0) {
                 // вычисляем сколько секунд прошло после выключения насоса1 накачивающего раствор
-                uint32_t dTS = mainData.nowTS - pumpHighTS_end;
+                uint32_t dTS = mData->nowTS - pumpHighTS_end;
                 // если прошло 20 секунд, включаем насос2 для откачки воды
                 if (dTS > timeoutPumpHigh2) {
                     // обнуляем время выключения насоса1, начинается стадия откачки
@@ -188,14 +195,14 @@ void x_logic::loop(bool forceDataSend) {
                     digitalWrite(PUMP_HIGH2_PIN, SRELAY_ON);
                     if (DEBUG) { logEvent("мотор высокого давления2: вкл"); }
                     // запоминаем время включения насоса2
-                    pumpHigh2TS_start = mainData.nowTS;
+                    pumpHigh2TS_start = mData->nowTS;
                 }
             }
 
             // если идет стадия откачки раствора
             if (pumpHigh2TS_start > 0) {
                 // вычисляем сколько секунд прошло после включения насоса2
-                uint32_t dTS = mainData.nowTS - pumpHigh2TS_start;
+                uint32_t dTS = mData->nowTS - pumpHigh2TS_start;
                 // если прошла минута работы насоса2, отключаем его
                 if (dTS > timePumpHigh2) {
                     // отключаем насос2
@@ -204,14 +211,14 @@ void x_logic::loop(bool forceDataSend) {
                     // обнуляем время старата насоса2
                     pumpHigh2TS_start = 0;
                     // запоминаем время выключения насоса2, начинается новый цикл
-                    pumpHigh2TS_end = mainData.nowTS;
+                    pumpHigh2TS_end = mData->nowTS;
                 }
             }
 
             // если начат новый цикл
             if (pumpHigh2TS_end > 0) {
                 // вычисляем сколько секунд прошло после выключения насоса2
-                uint32_t dTS = mainData.nowTS - pumpHigh2TS_end;
+                uint32_t dTS = mData->nowTS - pumpHigh2TS_end;
                 // если время простоя вышло, и поплавок2 не затоплен (доп проверка)
                 if (dTS > timeoutPumpHigh && digitalRead(FLOAT_SENSOR2_PIN) == HIGH) {
                     // включаем насос1, накачиваем раствор
@@ -219,7 +226,7 @@ void x_logic::loop(bool forceDataSend) {
                     digitalWrite(PUMP_HIGH_PIN_HV, RELAY_ON);
                     if (DEBUG) { logEvent("мотор высокого давления1: вкл."); }
                     // запоминаем время включения насоса1
-                    pumpHighTS_start = mainData.nowTS;
+                    pumpHighTS_start = mData->nowTS;
                     // обнуляем время выключения насоса1
                     pumpHigh2TS_end = 0;
                 }
@@ -231,8 +238,8 @@ void x_logic::loop(bool forceDataSend) {
         logToScreen("d16.txt", "Program " + std::to_string(pumpProgram));
     }
 
-
-    uint32_t deltaSeconds = mainData.nowTS - mainData.startGrow.unixtime();
+    // Управляем светом
+    uint32_t deltaSeconds = mData->nowTS - mData->startGrow.unixtime();
     if (lightProgramForce) {
         // Принудительная включение света
         if (isLightOn == false) {
@@ -240,103 +247,111 @@ void x_logic::loop(bool forceDataSend) {
             digitalWrite(LIGHT_PIN, RELAY_ON);
             if (DEBUG) { logEvent("свет: вкл."); }
         }
-    } else if (lightProgram == 1) {
+    } else if (lightProgram == 1 || lightProgram == 2 || lightProgram == 3) {
         // Программа 1: 12x12
-        auto deltaHours = deltaSeconds / 60 / 60 / 12;
-        logEvent((String) "deltaHours=" + deltaHours);
-        if (deltaHours % 2) { //первая половина дня
+        // Программа 2: 16x8
+        // Программа 3: 20x4
+        int lightHourEnd = 0;
+        if (lightProgram == 1) {
+            lightHourEnd = 12;
+        } else if (lightProgram == 2) {
+            lightHourEnd = 16;
+        } else if (lightProgram == 3) {
+            lightHourEnd = 20;
+        }
+        auto deltaHours = deltaSeconds / 60 / 60;
+        auto numberOfDays = deltaHours / 24;
+        auto lastDayHours = deltaHours - numberOfDays * 24;
+        if (VERBOSE && DEBUG) {
+            logEvent((String) "now: " + mData->nowTS + "; deltaSeconds: " +  deltaSeconds 
+            + "; lastDayHours: " + lastDayHours + "; lightHourEnd: "+ lightHourEnd);
+        }
+        if (lastDayHours < lightHourEnd) {
             if (isLightOn == false) {
                 isLightOn = true;
                 digitalWrite(LIGHT_PIN, RELAY_ON);
                 if (DEBUG) { logEvent("свет: вкл."); }
             }
-        } else { //вторая половина дня
+        } else {
             if (isLightOn == true) {
                 isLightOn = false;
                 digitalWrite(LIGHT_PIN, RELAY_OFF);
                 if (DEBUG) { logEvent("свет: выкл."); }
             }
         }
-    } else if (lightProgram == 2) {
-        // Программа 2: 16x8
-        auto deltaHours = deltaSeconds / 60 / 60;
-        auto numberOfDays = deltaHours / 24;
-        deltaHours - numberOfDays * 24;
-    } else if (lightProgram == 3) {
-
     } else if (lightProgram == 4) {
-
-    }
-
-
-
-    // Управляем светом
-    uint32_t deltaDays = deltaSeconds / (24 * 60 * 60);
-    if (DEBUG && VERBOSE) {
-        logEvent((String) "V: deltaSeconds=" + deltaSeconds + " deltaDays=" + deltaDays);
-    }
-    auto addMinutes = deltaDays * lightDeltaMinutes;
-    auto lightMinutes = lightMinHours * 60 + addMinutes;
-    if (lightMinutes > lightMaxHours * 60) {
-        lightMinutes = lightMaxHours * 60;
-    }
-    // последняя минута включенного света с начала дня
-    auto lightEndMinute = lightTimeOn * 60 + lightMinutes;
-    if (lightEndMinute >= 24 * 60) {
-        lightEndMinute -= 24 * 60;
-    }
-    const auto lightStartMinute = lightTimeOn * 60;
-    // текущая минута с начала дня
-    const auto currMinute = mainData.nowHour * 60 + mainData.nowMinute;
-    if (DEBUG && VERBOSE) {
-        logEvent((String) "V: lightMinutes=" + lightMinutes + " lightStartMinute=" + lightStartMinute
-                 + " lightEndMinute=" + lightEndMinute + " currMinute=" + currMinute + " isLightOn=" + isLightOn);
-    }
-    if (isLightOn) {
-        if ((lightStartMinute < lightEndMinute && (currMinute < lightStartMinute || currMinute >= lightEndMinute))
-            || (lightStartMinute > lightEndMinute && (currMinute < lightStartMinute && currMinute >= lightEndMinute))
-                ) {
-            isLightOn = false;
-            digitalWrite(LIGHT_PIN, RELAY_OFF);
-            if (DEBUG) { logEvent("свет: выкл."); }
+        // Программа 4: Постепенное нарастане света
+        uint32_t deltaDays = deltaSeconds / (24 * 60 * 60);
+        if (DEBUG && VERBOSE) {
+            logEvent((String) "V: deltaSeconds=" + deltaSeconds + " deltaDays=" + deltaDays);
         }
-    } else {
-        if ((lightStartMinute < lightEndMinute && (currMinute >= lightStartMinute && currMinute < lightEndMinute))
-            || (lightStartMinute > lightEndMinute && (currMinute >= lightStartMinute || currMinute < lightEndMinute))
-                ) {
-            isLightOn = true;
-            digitalWrite(LIGHT_PIN, RELAY_ON);
-            if (DEBUG) { logEvent("свет: вкл."); }
+        auto addMinutes = deltaDays * lightDeltaMinutes;
+        auto lightMinutes = lightMinHours * 60 + addMinutes;
+        if (lightMinutes > lightMaxHours * 60) {
+            lightMinutes = lightMaxHours * 60;
         }
+        // последняя минута включенного света с начала дня
+        auto lightEndMinute = lightTimeOn * 60 + lightMinutes;
+        if (lightEndMinute >= 24 * 60) {
+            lightEndMinute -= 24 * 60;
+        }
+        const auto lightStartMinute = lightTimeOn * 60;
+        // текущая минута с начала дня
+        const auto currMinute = mData->nowHour * 60 + mData->nowMinute;
+        if (DEBUG && VERBOSE) {
+            logEvent((String) "V: lightMinutes=" + lightMinutes + " lightStartMinute=" + lightStartMinute
+                    + " lightEndMinute=" + lightEndMinute + " currMinute=" + currMinute + " isLightOn=" + isLightOn);
+        }
+        if (isLightOn) {
+            if ((lightStartMinute < lightEndMinute && (currMinute < lightStartMinute || currMinute >= lightEndMinute))
+                || (lightStartMinute > lightEndMinute && (currMinute < lightStartMinute && currMinute >= lightEndMinute))
+                    ) {
+                isLightOn = false;
+                digitalWrite(LIGHT_PIN, RELAY_OFF);
+                if (DEBUG) { logEvent("свет: выкл."); }
+            }
+        } else {
+            if ((lightStartMinute < lightEndMinute && (currMinute >= lightStartMinute && currMinute < lightEndMinute))
+                || (lightStartMinute > lightEndMinute && (currMinute >= lightStartMinute || currMinute < lightEndMinute))
+                    ) {
+                isLightOn = true;
+                digitalWrite(LIGHT_PIN, RELAY_ON);
+                if (DEBUG) { logEvent("свет: вкл."); }
+            }
+        }
+    }
+    if (forceDataSend || d05_old != lightProgram) {
+        d05_old = lightProgram;
+        logToScreen("d05.txt", "Program " + std::to_string(lightProgram));
     }
 
     // Управление в БОКСЕ
     if (DEBUG && VERBOSE) {
-        logEvent((String) "xTempHumid.boxHumid=" + mainData.boxHumid + " isBoxVentOn=" + isBoxVentOn +
-                 " isBoxHumidOn=" + isBoxHumidOn + " >Ok?=" + (mainData.boxHumid > boxHumidOk)
-                 + " >Min?=" + (mainData.boxHumid > boxHumidMin) + " <Max?=" + (mainData.boxHumid < boxHumidMax));
+        logEvent((String) "xTempHumid.boxHumid=" + mData->boxHumid + " isBoxVentOn=" + isBoxVentOn +
+                 " isBoxHumidOn=" + isBoxHumidOn + " >Ok?=" + (mData->boxHumid > boxHumidOk)
+                 + " >Min?=" + (mData->boxHumid > boxHumidMin) + " <Max?=" + (mData->boxHumid < boxHumidMax));
     }
     if (isBoxVentOn) {
-        if (mainData.boxHumid <= boxHumidOk) {
+        if (mData->boxHumid <= boxHumidOk) {
             isBoxVentOn = false;
             digitalWrite(BOX_VENT_PIN, RELAY_OFF);
             if (DEBUG) { logEvent("БОКС вентилятор: выкл."); }
         }
     } else {
-        if (mainData.boxHumid >= boxHumidMax) {
+        if (mData->boxHumid >= boxHumidMax) {
             isBoxVentOn = true;
             digitalWrite(BOX_VENT_PIN, RELAY_ON);
             if (DEBUG) { logEvent("БОКС вентилятор: вкл."); }
         }
     }
     if (isBoxHumidOn) {
-        if (mainData.boxHumid >= boxHumidOk) {
+        if (mData->boxHumid >= boxHumidOk) {
             isBoxHumidOn = false;
             digitalWrite(BOX_HUMID_PIN, RELAY_OFF);
             if (DEBUG) { logEvent("БОКС увлажнитель: выкл."); }
         }
     } else {
-        if (mainData.boxHumid <= boxHumidMin) {
+        if (mData->boxHumid <= boxHumidMin) {
             isBoxHumidOn = true;
             digitalWrite(BOX_HUMID_PIN, RELAY_ON);
             if (DEBUG) { logEvent("БОКС увлажнитель: вкл."); }
@@ -349,16 +364,32 @@ bool x_logic::processConsoleCommand(std::string &cmd) {
 
     // Кнопка выбора программы, смена на след. прогр-му
     if (cmd.rfind("PN+", 0) == 0) {
-        if (pumpProgram >= MAX_PROGRAMS) {
+        if (pumpProgram >= MAX_PUMP_PROGRAMS) {
             pumpProgram = 1;
         } else {
             pumpProgram++;
         }
-        logEvent("\nSave preference, xPumpProgram=" + pumpProgram);
-        preferences.begin(PREFS_PROGRAM_PUPM, false);
-        preferences.remove(PREFS_KEY_PP_VAL);
-        preferences.putInt(PREFS_KEY_PP_VAL, pumpProgram);
-        preferences.end();
+        logEvent("\nSave preference, pumpProgram=" + pumpProgram);
+        mData->preferences.begin(PREFS_PROGRAM_PUPM, false);
+        mData->preferences.remove(PREFS_KEY_PP_VAL);
+        mData->preferences.putInt(PREFS_KEY_PP_VAL, pumpProgram);
+        mData->preferences.end();
+        Serial.println("\tOK!");
+        return true;
+    }
+
+    // Кнопка выбора программы, смена на след. прогр-му
+    if (cmd.rfind("PS+", 0) == 0) {
+        if (lightProgram >= MAX_LIGHT_PROGRAMS) {
+            lightProgram = 1;
+        } else {
+            lightProgram++;
+        }
+        logEvent("\nSave preference, lightProgram=" + lightProgram);
+        mData->preferences.begin(PREFS_LIGHT, false);
+        mData->preferences.remove(PREFS_KEY_LI_VAL);
+        mData->preferences.putInt(PREFS_KEY_LI_VAL, lightProgram);
+        mData->preferences.end();
         Serial.println("\tOK!");
         return true;
     }

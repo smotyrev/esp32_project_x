@@ -11,7 +11,8 @@ OneWire oneWireDS18B20(DS18B20_PIN);
 DallasTemperature sensorDS18B20(&oneWireDS18B20);
 float temperatureDS18B20 = 0.0;
 
-void x_temperature_humidity::setup() {
+void x_temperature_humidity::setup(main_data &data) {
+    mData = &data;
     dht.begin();
     Serial.println("Modified Temperature, Humidity Serial Monitor Example");
     sensor_t dhtSensor;
@@ -73,7 +74,7 @@ void x_temperature_humidity::loop(bool forceDataSend) {
     }
 
     dht.humidity().getEvent(&dhtVal);
-    mainData.boxHumid = dhtVal.relative_humidity;
+    mData->boxHumid = dhtVal.relative_humidity;
     if (DEBUG) {
         Serial.print((String) dhtVal.relative_humidity + "%");
     }

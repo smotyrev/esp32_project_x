@@ -57,7 +57,8 @@
 // Реле пины:
 //////////////
 
-#define MAX_PROGRAMS 2
+#define MAX_PUMP_PROGRAMS 2
+#define MAX_LIGHT_PROGRAMS 4
 
 // Программа 1: Насос высокого давления. Накачиваем раствор.
 #define PUMP_HIGH_PIN   23          // насос высокого давления
@@ -104,6 +105,9 @@
 
 #define PREFS_PROGRAM_PUPM "pp"
 #define PREFS_KEY_PP_VAL "ppval"
+
+#define PREFS_LIGHT "li"
+#define PREFS_KEY_LI_VAL "lival"
 
 inline void logEvent(const String &event) {
     Serial.println("\n\t[" + event + "]");
@@ -155,16 +159,12 @@ public:
     uint8_t nowMinute;
     float boxHumid = 0;
     DateTime startGrow;                 // Время начала роста
+    Preferences preferences;    // Основные настройки
 };
-
-// Здесь хранятся основные переменные
-static main_data mainData;
-// Основные настройки
-static Preferences preferences;
 
 class main_looper {
 public:
-    virtual void setup() = 0;
+    virtual void setup(main_data &data) = 0;
     virtual void loop(bool forceDataSend) = 0;
     virtual bool processConsoleCommand(std::string &cmd) = 0;
 };

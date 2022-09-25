@@ -3,7 +3,8 @@
 // часы
 DateTime now;
 
-void x_time::setup() {
+void x_time::setup(main_data &data) {
+    mData = &data;
     now = RTClib::now();
     if (now.hour() > 24 && now.minute() > 60 && now.second() > 60) {
         fakeNow = now.unixtime();
@@ -37,13 +38,13 @@ void x_time::loop(bool forceDataSend) {
         now = RTClib::now();
     }
     
-    if (!forceDataSend && mainData.nowTS == now.unixtime()) {
+    if (!forceDataSend && mData->nowTS == now.unixtime()) {
         return;
     }
 
-    mainData.nowTS = now.unixtime();
-    mainData.nowMinute = now.minute();
-    mainData.nowHour = now.hour();
+    mData->nowTS = now.unixtime();
+    mData->nowMinute = now.minute();
+    mData->nowHour = now.hour();
 
     if (DEBUG) {
         Serial.println(
@@ -122,7 +123,7 @@ bool x_time::processConsoleCommand(std::string &cmd) {
         }
     }
 
-    key = "startGrow";
+    key = "startGrow ";
     if (cmd.rfind(key, 0) == 0) {
         cmd.erase(0, strlen(key));
         if (cmd.length() >= 8) {
@@ -135,11 +136,11 @@ bool x_time::processConsoleCommand(std::string &cmd) {
                            year.data() + "-" + month.data() + "-" + day.data() + " Hour: " + hour.data());
             auto dt = DateTime(atoi(year.data()), atoi(month.data()), atoi(day.data()), atoi(hour.data()));
             Serial.println((String) "[CMD SET START GROW]: DateTime: " + dt.unixtime());
-            preferences.begin(PREFS_START_GROW, false);
-            preferences.remove(PREFS_KEY_TIMESTAMP);
-            preferences.putUInt(PREFS_KEY_TIMESTAMP, dt.unixtime());
+            mData->preferences.begin(PREFS_START_GROW, false);
+            mData->preferences.remove(PREFS_KEY_TIMESTAMP);
+            mData->preferences.putUInt(PREFS_KEY_TIMESTAMP, dt.unixtime());
             Serial.println("Preferences saved. Don't turn off, restart in 2 seconds...");
-            preferences.end();
+            mData->preferences.end();
             delay(2000);
             ESP.restart();
             return true;

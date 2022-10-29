@@ -328,30 +328,30 @@ void x_logic::loop(bool forceDataSend) {
     // Управление в БОКСЕ
     if (DEBUG && VERBOSE) {
         logEvent((String) "xTempHumid.boxHumid=" + mData->boxHumid + " isBoxVentOn=" + isBoxVentOn +
-                 " isBoxHumidOn=" + isBoxHumidOn + " >Ok?=" + (mData->boxHumid > boxHumidOk)
-                 + " >Min?=" + (mData->boxHumid > boxHumidMin) + " <Max?=" + (mData->boxHumid < boxHumidMax));
+                 " isBoxHumidOn=" + isBoxHumidOn
+                 + " >Min?=" + (mData->boxHumid > mData->boxHumidMin) + " <Max?=" + (mData->boxHumid < mData->boxHumidMax));
     }
     if (isBoxVentOn) {
-        if (mData->boxHumid <= boxHumidOk) {
+        if (mData->boxHumid <= (mData->boxHumidMax - 5.0)) {
             isBoxVentOn = false;
             digitalWrite(BOX_VENT_PIN, RELAY_OFF);
             if (DEBUG) { logEvent("БОКС вентилятор: выкл."); }
         }
     } else {
-        if (mData->boxHumid >= boxHumidMax) {
+        if (mData->boxHumid >= mData->boxHumidMax) {
             isBoxVentOn = true;
             digitalWrite(BOX_VENT_PIN, RELAY_ON);
             if (DEBUG) { logEvent("БОКС вентилятор: вкл."); }
         }
     }
     if (isBoxHumidOn) {
-        if (mData->boxHumid >= boxHumidOk) {
+        if (mData->boxHumid >= (mData->boxHumidMin + 5.0)) {
             isBoxHumidOn = false;
             digitalWrite(BOX_HUMID_PIN, RELAY_OFF);
             if (DEBUG) { logEvent("БОКС увлажнитель: выкл."); }
         }
     } else {
-        if (mData->boxHumid <= boxHumidMin) {
+        if (mData->boxHumid <= mData->boxHumidMin) {
             isBoxHumidOn = true;
             digitalWrite(BOX_HUMID_PIN, RELAY_ON);
             if (DEBUG) { logEvent("БОКС увлажнитель: вкл."); }

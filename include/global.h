@@ -60,6 +60,8 @@
 #define MAX_LIGHT_PROGRAMS 4
 
 // Программа 1: Насос высокого давления. Накачиваем раствор.
+#define PUMP_HIGH_PIN 23
+#define PUMP_HIGH_PIN_HV 19
  
 #define timeoutPumpHigh 160         // секунд - таймаут, между включениями
 #define timePumpHigh    15          // секунд - время работы насоса
@@ -85,9 +87,6 @@
 // Если влажность более 70%, включается вентилятор вытяжки и вентиляторы притока, пока влажность не достигнет 65%
 #define BOX_HUMID_PIN       12  // Увлажнитель
 #define BOX_VENT_PIN        14  // Вентилятор
-#define boxHumidMin         55.0f
-#define boxHumidOk          65.0f
-#define boxHumidMax         70.0f
 
 // ТЕМПЕРАТУРА В БОКСЕ.
 // Если температура падает ниже 17 градусов, включается обогрев пока температура не достигнет показания 22 градуса.
@@ -100,6 +99,10 @@
 #define PREFS_START_GROW "start-grow"
 #define PREFS_KEY_TIMESTAMP "TS"
 #define TERMINATE_SCREEN_POSTFIX "\xFF\xFF\xFF" //char(255)+char(255)+char(255)
+
+#define PREFS_BOX "box"
+#define PREFS_KEY_BOX_HUMID_MAX "humid-max"
+#define PREFS_KEY_BOX_HUMID_MIN "humid-min"
 
 #define PREFS_PROGRAM_PUPM "pp"
 #define PREFS_KEY_PP_VAL "ppval"
@@ -122,6 +125,12 @@ inline void logToScreen(std::string key, std::string value) {
     }
 }
 
+// trim from start (in place)
+static inline void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }));
+}
 
 // trim from end (in place)
 static inline void rtrim(std::string &s) {
@@ -136,6 +145,8 @@ public:
     uint8_t nowHour;
     uint8_t nowMinute;
     float boxHumid = 0;
+    float boxHumidMax = 70.0f;
+    float boxHumidMin = 55.0f;
     DateTime startGrow;                 // Время начала роста
     Preferences preferences;    // Основные настройки
 };

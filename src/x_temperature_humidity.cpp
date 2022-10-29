@@ -49,6 +49,13 @@ void x_temperature_humidity::setup(main_data &data) {
     sensorDS18B20.begin();
     sensorDS18B20.setWaitForConversion(false);
     sensorDS18B20.requestTemperatures();
+
+    mData->preferences.begin(PREFS_BOX, true);
+    mData->boxHumidMax = mData->preferences.getFloat(PREFS_KEY_BOX_HUMID_MAX, 0);
+    if (DEBUG) {
+        Serial.println((String) "[PREF GET] Box Humid Ok: " + mData->boxHumidMax);
+    }
+    mData->preferences.end();
 }
 
 float d01_old = 0;
@@ -119,5 +126,40 @@ void x_temperature_humidity::loop(bool forceDataSend) {
 }
 
 bool x_temperature_humidity::processConsoleCommand(std::string &cmd) {
+    const char * key;
+    key = "boxHumidMax ";
+    if (cmd.rfind(key, 0) == 0) {
+        cmd.erase(0, strlen(key));
+        if (cmd.length() >= 1) {
+            cmd = cmd.substr(0, 2);
+            auto newHumid = atoi(cmd.data());
+            mData->preferences.begin(PREFS_BOX, false);
+            mData->preferences.remove(PREFS_KEY_BOX_HUMID_MAX);
+            mData->preferences.putUInt(PREFS_KEY_BOX_HUMID_MAX, newHumid);
+            Serial.println("Preferences saved. Don't turn off, restart in 2 seconds...");
+            mData->preferences.end();
+            delay(1000);
+            ESP.restart();
+            return true;
+        }
+    }
+
+    key = "boxHumidMin ";
+    if (cmd.rfind(key, 0) == 0) {
+        cmd.erase(0, strlen(key));
+        if (cmd.length() >= 1) {
+            cmd = cmd.substr(0, 2);
+            auto newHumid = atoi(cmd.data());
+            mData->preferences.begin(PREFS_BOX, false);
+            mData->preferences.remove(PREFS_KEY_BOX_HUMID_MIN);
+            mData->preferences.putUInt(PREFS_KEY_BOX_HUMID_MIN, newHumid);
+            Serial.println("Preferences saved. Don't turn off, restart in 2 seconds...");
+            mData->preferences.end();
+            delay(1000);
+            ESP.restart();
+            return true;
+        }
+    }
+
     return false;
 }

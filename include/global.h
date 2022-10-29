@@ -47,7 +47,6 @@
 // i2c : arduino -> esp32
 #define I2C_SDA_PIN     SCL
 #define I2C_SCL_PIN     SDA
-#define I2C_ADDR        8       // номер девайса, должен быть выставлен одинаково на обоих концах
 
 // поплавок, датчик воды
 #define FLOAT_SENSOR_PIN  27        // Поплавок на бак с водой
@@ -61,8 +60,7 @@
 #define MAX_LIGHT_PROGRAMS 4
 
 // Программа 1: Насос высокого давления. Накачиваем раствор.
-#define PUMP_HIGH_PIN   23          // насос высокого давления
-#define PUMP_HIGH_PIN_HV   19       // насос высокого давления высоковольтное реле
+ 
 #define timeoutPumpHigh 160         // секунд - таймаут, между включениями
 #define timePumpHigh    15          // секунд - время работы насоса
 

@@ -122,26 +122,6 @@ inline void logToScreen(std::string key, std::string value) {
     }
 }
 
-inline void logWire(const String &prefix, const String &postfix) {
-    Serial.print(prefix);
-    Wire.requestFrom(I2C_ADDR, 6); // request 6 bytes from slave device #8
-    while (Wire.available()) {          // slave may send less than requested
-        char c = (char) Wire.read();    // receive a byte as character
-        Serial.print(c);                // print the character
-    }
-    Serial.print(postfix);
-}
-
-inline void logWireToScreen(const String &key, const String &prefix, const String &postfix) {
-    logWire(key + "=\"" + prefix, postfix + "\"" + TERMINATE_SCREEN_POSTFIX);
-}
-
-// trim from start (in place)
-static inline void ltrim(std::string &s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
-        return !std::isspace(ch);
-    }));
-}
 
 // trim from end (in place)
 static inline void rtrim(std::string &s) {

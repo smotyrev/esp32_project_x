@@ -27,10 +27,12 @@ GravityTDS gravityTds;
 float tdsValue = 0;
 
 int pumpProgram = 1;                // Текущая программа управления насосом(ами) для орошения
-bool pumpProgramForce = false;      // Принудительно включить программу орашения
+bool pumpProgramForce = false;      // Принудительное включение программы орашения
+bool pumpProgramOFF = false;        // Принудительно выключение орашения
 
-int lightProgram = 1;
-bool lightProgramForce = false;
+int lightProgram = 1;               // Текущая программа управления светом
+bool lightProgramForce = false;     // Принудительное включение света
+bool lightProgramOFF = false;     // Принудительное выключение света
 
 void x_logic::setup(main_data &data) {
     mData = &data;
@@ -117,8 +119,12 @@ void x_logic::loop(bool forceDataSend) {
     // RELAY processing:
     // -----------------
 
-    // Управляяем насосом\насосами высокого давления
-    if (pumpProgramForce) {
+    // Управляяем насосом питающего раствора
+    if (pumpProgramOFF) {
+        // Принудительное отключение насосов 
+        digitalWrite(PUMP_HIGH_PIN, SRELAY_OFF);
+        digitalWrite(PUMP_HIGH_PIN_HV, RELAY_OFF);        
+    } else if (pumpProgramForce) {
         // Принудительная подача раствора, согласно программе
         if (pumpProgram == 1) {
             if (digitalRead(PUMP_HIGH_PIN) == SRELAY_OFF) {
@@ -240,12 +246,17 @@ void x_logic::loop(bool forceDataSend) {
 
     // Управляем светом
     uint32_t deltaSeconds = mData->nowTS - mData->startGrow.unixtime();
-    if (lightProgramForce) {
-        // Принудительная включение света
+    if (lightProgramOFF) {
+        // Принудительное выключение света
+        isLightOn = false;
+        digitalWrite(LIGHT_PIN, RELAY_OFF);
+    } else if (lightProgramForce) {
+        // Принудительное включение света
         if (isLightOn == false) {
             isLightOn = true;
             digitalWrite(LIGHT_PIN, RELAY_ON);
-            if (DEBUG) { logEvent("свет: вкл."); }
+            logToScreen("d07.txt", "svet ON");
+            if (DEBUG) { logEvent("Svet OF"); }
         }
     } else if (lightProgram == 1 || lightProgram == 2 || lightProgram == 3) {
         // Программа 1: 12x12
@@ -362,7 +373,7 @@ void x_logic::loop(bool forceDataSend) {
 bool x_logic::processConsoleCommand(std::string &cmd) {
     // Serial.println((String) "\n\t CMD [" + ccmd + "]");
 
-    // Кнопка выбора программы, смена на след. прогр-му
+    // Кнопка выбора программы, смена на след. прогр-му для насоса
     if (cmd.rfind("PN+", 0) == 0) {
         if (pumpProgram >= MAX_PUMP_PROGRAMS) {
             pumpProgram = 1;
@@ -375,10 +386,11 @@ bool x_logic::processConsoleCommand(std::string &cmd) {
         mData->preferences.putInt(PREFS_KEY_PP_VAL, pumpProgram);
         mData->preferences.end();
         Serial.println("\tOK!");
+        logToScreen("d17.txt", "switching programm ok");
         return true;
     }
 
-    // Кнопка выбора программы, смена на след. прогр-му
+    // Кнопка выбора программы, смена на след. прогр-му для света
     if (cmd.rfind("PS+", 0) == 0) {
         if (lightProgram >= MAX_LIGHT_PROGRAMS) {
             lightProgram = 1;
@@ -391,23 +403,66 @@ bool x_logic::processConsoleCommand(std::string &cmd) {
         mData->preferences.putInt(PREFS_KEY_LI_VAL, lightProgram);
         mData->preferences.end();
         Serial.println("\tOK!");
+        logToScreen("d06.txt", "switching programm ok");
         return true;
     }
 
-    // Кнопка включения насосов принудительно, согласно выбраной программе
+    // Кнопка включения насоса принудительно, согласно выбраной программе
     if (cmd.rfind("ForceNON", 0) == 0) {
         Serial.println("\nPreferences saved, xPumpProgramForce=true");
+        logToScreen("d17.txt", "The pump is turned on forcibly, according to a given program.");
         pumpProgramForce = true;
         return true;
     }
-
-    // Кнопка работы насосов по программе
+    // Кнопка выключения насосов принудительно 
+    if (cmd.rfind("ForceNoff", 0) == 0) {
+        Serial.println("\nPreferences saved, xPumpProgramOFF=true");
+        logToScreen("d17.txt", "Рump off");
+        pumpProgramOFF = true;
+        return true;
+    }
+    // Кнопка работы насосов по программе (FORCE)
     if (cmd.rfind("ForceNOFF", 0) == 0) {
         Serial.println("\nPreferences saved, xPumpProgramForce=false");
+        logToScreen("d17.txt", "The pump turns on according to the set program.");
         pumpProgramForce = false;
         return true;
     }
-
+    // Кнопка работы насосов по программе (OFF)
+    if (cmd.rfind("ForceNoff", 0) == 0) {
+        Serial.println("\nPreferences saved, xPumpProgramOFF=false");
+        logToScreen("d17.txt", "The pump turns on according to the set program.");
+        pumpProgramOFF = false;
+        return true;
+    }
+    // Кнопка включения света
+    if (cmd.rfind("ForceSON", 0) == 0) {
+        Serial.println("\nPreferences saved, xlightProgramForce=true");
+        logToScreen("d06.txt", "The light is turned on forcibly, according to a given program.");
+        lightProgramForce = true;
+        return true;
+    }
+    // Кнопка выключения света
+    if (cmd.rfind("ForceSON", 0) == 0) {
+        Serial.println("\nPreferences saved, xlightProgramOFF=true");
+        logToScreen("d06.txt", "The light off");
+        lightProgramOFF = true;
+        return true;
+    }
+    // Кнопка работы света по программе (FORCE)
+    if (cmd.rfind("ForceSOFF", 0) == 0) {
+        Serial.println("\nPreferences saved, xlightProgramForce=false");
+        logToScreen("d06.txt", " The light turns on according to the set program.");
+        lightProgramForce = false;
+        return true;
+    }
+    // Кнопка работы света по программе (OFF)
+    if (cmd.rfind("ForceSOFF", 0) == 0) {
+        Serial.println("\nPreferences saved, xlightProgramForce=false");
+        logToScreen("d06.txt", " The light turns on according to the set program.");
+        lightProgramForce = false;
+        return true;
+    }
     return false;
 }
 

@@ -45,6 +45,8 @@ void x_time::loop(bool forceDataSend) {
     mData->nowTS = now.unixtime();
     mData->nowMinute = now.minute();
     mData->nowHour = now.hour();
+    
+
 
     if (DEBUG) {
         Serial.println(
@@ -56,6 +58,8 @@ void x_time::loop(bool forceDataSend) {
     logToScreen("time1.txt", std::to_string(now.day()) + "-" + std::to_string(now.month()) + "-" + std::to_string(now.year()));
     // Time
     logToScreen("time2.txt", (fakeNow > 0 ? "?" : "") + std::to_string(now.hour()) + ":" + std::to_string(now.minute()) + ":" + std::to_string(now.second()));
+    // Start grow
+    logToScreen("time3.txt", std::to_string(mData->startGrow.day()) + "-" +  std::to_string(mData->startGrow.month()) + "-" + std::to_string(mData->startGrow.year()) + " " + std::to_string(mData->startGrow.hour()) + ":00");
 }
 
 bool x_time::processConsoleCommand(std::string &cmd) {
@@ -114,12 +118,14 @@ bool x_time::processConsoleCommand(std::string &cmd) {
                            " Time " + Hour + ":" + Minute + ":" + Second);
             Serial.println((String) "[CMD SET DATE AND TIME]: Timestamp " + RTClib::now().unixtime());
             Serial.println("Restart in 2 seconds...");
+            logToScreen("d311.txt", "Preferences saved. Don't turn off, restart in 2 seconds...");
             delay(2000);
             ESP.restart();
             return true;
         } else {
             Serial.println((String) "\n[CMD SET DATE AND TIME]: Canceled! "
                                     "Wrong payload (" + cmd.data() + "), (YYMMDDwHHMMSS) expected!");
+            logToScreen("d311.txt", "\n[CMD SET DATE AND TIME]: Canceled! ");
         }
     }
 
@@ -140,10 +146,13 @@ bool x_time::processConsoleCommand(std::string &cmd) {
             mData->preferences.remove(PREFS_KEY_TIMESTAMP);
             mData->preferences.putUInt(PREFS_KEY_TIMESTAMP, dt.unixtime());
             Serial.println("Preferences saved. Don't turn off, restart in 2 seconds...");
+            logToScreen("d321.txt", "Preferences saved. Don't turn off, restart in 2 seconds...");
             mData->preferences.end();
             delay(2000);
             ESP.restart();
             return true;
+        } else {            
+            logToScreen("d321.txt", "\n[CMD SET START GROW]: Canceled! ");
         }
     }
 

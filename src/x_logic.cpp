@@ -27,8 +27,8 @@ GravityTDS gravityTds;
 float tdsValue = 0;
 
 int pumpProgram = 1;                // Текущая программа управления насосом(ами) для орошения
-bool pumpProgramForce = false;      // Принудительное включение программы орашения
-bool pumpProgramOFF = false;        // Принудительно выключение орашения
+int pumpForce = pumpForce::NoForcep;
+int pumpForceOld = pumpForce;
 
 int lightProgram = 1;               // Текущая программа управления светом
 int lightForce = LightForce::NoForce;
@@ -91,9 +91,9 @@ void x_logic::setup(main_data &data) {
     // устанавливаем время выключения насоса2, это нужно чтобы запустить цикл для Программы 2
     pumpHigh2TS_end = 1;
 
-    logToScreen("r0.val", "1");
-    logToScreen("r1.val", "0");
-    logToScreen("r2.val", "0");
+   // logToScreen("r01.val", "1");
+   // logToScreen("r02.val", "0");
+   // logToScreen("r03.val", "0");
 }
 
 int d14_old = -1;
@@ -123,12 +123,12 @@ void x_logic::loop(bool forceDataSend) {
     // RELAY processing:
     // -----------------
 
-    // Управляяем насосом питающего раствора
-    if (pumpProgramOFF) {
+    // Управляяем насосом питающего раствора pumpForce
+    if (pumpForce == pumpForce::Offp) {
         // Принудительное отключение насосов 
         digitalWrite(PUMP_HIGH_PIN, SRELAY_OFF);
         digitalWrite(PUMP_HIGH_PIN_HV, RELAY_OFF);        
-    } else if (pumpProgramForce) {
+    } else if (pumpForce == pumpForce::Onp) {
         // Принудительная подача раствора, согласно программе
         if (pumpProgram == 1) {
             if (digitalRead(PUMP_HIGH_PIN) == SRELAY_OFF) {
@@ -247,6 +247,21 @@ void x_logic::loop(bool forceDataSend) {
         d16_old = pumpProgram;
         logToScreen("d16.txt", "Program " + std::to_string(pumpProgram));
     }
+    // Кнопки вкл-выкл-прог
+    if (forceDataSend || pumpForceOld != pumpForce) {
+        pumpForceOld = pumpForce;
+        switch (pumpForce) {
+            case pumpForce::Offp:
+                logToScreen("r11.val", 0);logToScreen("r12.val", 0);logToScreen("r13.val", 1);
+                break;
+            case pumpForce::Onp:
+                logToScreen("r11.val", 0);logToScreen("r12.val", 1);logToScreen("r13.val", 0);
+                break;
+            default:
+                logToScreen("r11.val", 1);logToScreen("r12.val", 0);logToScreen("r13.val", 0);
+                break;
+        }
+    }
 
     // Управляем светом
     uint32_t deltaSeconds = mData->nowTS - mData->startGrow.unixtime();
@@ -342,17 +357,18 @@ void x_logic::loop(bool forceDataSend) {
         d05_old = lightProgram;
         logToScreen("d05.txt", "Program " + std::to_string(lightProgram));
     }
+    // Кнопки переключение вкл-выкл-прог
     if (forceDataSend || lightForceOld != lightForce) {
         lightForceOld = lightForce;
         switch (lightForce) {
             case LightForce::Off:
-                logToScreen("r0.val", 0);logToScreen("r1.val", 0);logToScreen("r2.val", 1);
+                logToScreen("r01.val", 0);logToScreen("r02.val", 0);logToScreen("r03.val", 1);
                 break;
             case LightForce::On:
-                logToScreen("r0.val", 0);logToScreen("r1.val", 1);logToScreen("r2.val", 0);
+                logToScreen("r01.val", 0);logToScreen("r02.val", 1);logToScreen("r03.val", 0);
                 break;
             default:
-                logToScreen("r0.val", 1);logToScreen("r1.val", 0);logToScreen("r2.val", 0);
+                logToScreen("r01.val", 1);logToScreen("r02.val", 0);logToScreen("r03.val", 0);
                 break;
         }
     }
@@ -428,37 +444,29 @@ bool x_logic::processConsoleCommand(std::string &cmd) {
         return true;
     }
 
-    // Кнопка включения насоса принудительно, согласно выбраной программе
-    if (cmd.rfind("ForceNON", 0) == 0) {
+    // RADIO CASE PUMP(prog-on-off)
+    if (cmd.rfind("NoForceP", 0) == 0) {
         Serial.println("\nPreferences saved, xPumpProgramForce=true");
         logToScreen("d17.txt", "The pump is turned on forcibly, according to a given program.");
-        pumpProgramForce = true;
+        pumpForce = pumpForce::NoForcep;
         return true;
     }
-    // Кнопка выключения насосов принудительно 
-    if (cmd.rfind("ForceNoff", 0) == 0) {
-        Serial.println("\nPreferences saved, xPumpProgramOFF=true");
-        logToScreen("d17.txt", "Рump off");
-        pumpProgramOFF = true;
+    if (cmd.rfind("ForcePON", 0) == 0) {
+        Serial.println("\nPreferences saved, xlightProgramForceOn=true");
+        logToScreen("d17.txt", "The pump on (force)");
+        pumpForce = pumpForce::Onp;
         return true;
     }
-    // Кнопка работы насосов по программе (FORCE)
-    if (cmd.rfind("ForceNOFF", 0) == 0) {
-        Serial.println("\nPreferences saved, xPumpProgramForce=false");
-        logToScreen("d17.txt", "The pump turns on according to the set program.");
-        pumpProgramForce = false;
+    if (cmd.rfind("ForcePOff", 0) == 0) {
+        Serial.println("\nPreferences saved, xlightProgramOFF=true");
+        logToScreen("d17.txt", "The pump off (force)");
+        pumpForce = pumpForce::Offp;
         return true;
     }
-    // Кнопка работы насосов по программе (OFF)
-    if (cmd.rfind("ForceNoff", 0) == 0) {
-        Serial.println("\nPreferences saved, xPumpProgramOFF=false");
-        logToScreen("d17.txt", "The pump turns on according to the set program.");
-        pumpProgramOFF = false;
-        return true;
-    }
+    return false;
+    //END
 
-
-    // Кнопка света
+    // RADIO CASE LIGHT(prog-on-off)
     if (cmd.rfind("NoForceS", 0) == 0) {
         Serial.println("\nPreferences saved, xlightProgramForceOn=true");
         logToScreen("d06.txt", "The light is turned by a given program.");
@@ -471,7 +479,6 @@ bool x_logic::processConsoleCommand(std::string &cmd) {
         lightForce = LightForce::On;
         return true;
     }
-    // Кнопка выключения света
     if (cmd.rfind("ForceSOff", 0) == 0) {
         Serial.println("\nPreferences saved, xlightProgramOFF=true");
         logToScreen("d06.txt", "The light off (force)");
@@ -479,6 +486,7 @@ bool x_logic::processConsoleCommand(std::string &cmd) {
         return true;
     }
     return false;
+    //END 
 }
 
 void x_logic::loopPhAndPpm(bool forceDataSend) {

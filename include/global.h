@@ -81,6 +81,7 @@
 #define lightMinHours       12  // Стартуем с 12-ти часовым "световым днем"
 #define lightMaxHours       19  // Максимальное время "светового дня", в часах
 #define lightDeltaMinutes   20  // На сколько минут увеличивается световой день, каждый день
+enum LightForce { NoForce = 0, On = 1, Off = 2 }; // Принудительное включение/выключение света
 
 // ВЛАЖНОСТЬ В БОКСЕ
 // Если влажность падает ниже 55% включается увлажнитель, пока значение влажности не достигнет 65%
@@ -118,6 +119,15 @@ const byte ndt[3] = {255,255,255};
 inline void logToScreen(std::string key, std::string value) {
     // Serial.print((String) TERMINATE_SCREEN_POSTFIX + key + "=\"" + value + "\"" + TERMINATE_SCREEN_POSTFIX);
     std::string data = key + "=\"" + value + "\"";
+    auto res = uart_write_bytes(UART_NUM_2, (const char*) data.c_str(), data.length());
+    uart_write_bytes(UART_NUM_2, ndt, 3);
+    if (DEBUG || VERBOSE) {
+        Serial.println(("logToScreen(" + data + "); res=" + std::to_string(res)).c_str());
+    }
+}
+inline void logToScreen(std::string key, int value) {
+    // Serial.print((String) TERMINATE_SCREEN_POSTFIX + key + "=\"" + value + "\"" + TERMINATE_SCREEN_POSTFIX);
+    std::string data = key + "=" + std::to_string(value) ;
     auto res = uart_write_bytes(UART_NUM_2, (const char*) data.c_str(), data.length());
     uart_write_bytes(UART_NUM_2, ndt, 3);
     if (DEBUG || VERBOSE) {

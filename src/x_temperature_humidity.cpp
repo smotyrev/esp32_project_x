@@ -107,15 +107,11 @@ void x_temperature_humidity::loop(bool forceDataSend) {
 
     // печатаем температура DS18B20 sensor
     sensorDS18B20.requestTemperatures();
-    if (sensorDS18B20.isConversionComplete()) {
-        temperatureDS18B20 = sensorDS18B20.getTempCByIndex(0);
-    } else if (DEBUG) {
-        Serial.print(" [Processing] ");
-    }
+    temperatureDS18B20 = sensorDS18B20.getTempCByIndex(0);
     if (DEBUG) {
         Serial.print((String) " | DS18B20: " + temperatureDS18B20 + "C");
     }
-    if (d11_old != temperatureDS18B20) {
+    if (forceDataSend || d11_old != temperatureDS18B20) {
         d11_old = temperatureDS18B20;
         logToScreen("d11.txt", std::to_string(temperatureDS18B20) + " C");
     }

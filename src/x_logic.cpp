@@ -31,8 +31,8 @@ bool pumpProgramForce = false;      // Принудительное включе
 bool pumpProgramOFF = false;        // Принудительно выключение орашения
 
 int lightProgram = 1;               // Текущая программа управления светом
-bool lightProgramForce = false;     // Принудительное включение света
-bool lightProgramOFF = false;     // Принудительное выключение света
+int lightForce = LightForce::NoForce;
+int lightForceOld = lightForce;
 
 void x_logic::setup(main_data &data) {
     mData = &data;
@@ -90,6 +90,10 @@ void x_logic::setup(main_data &data) {
 
     // устанавливаем время выключения насоса2, это нужно чтобы запустить цикл для Программы 2
     pumpHigh2TS_end = 1;
+
+    logToScreen("r0.val", "1");
+    logToScreen("r1.val", "0");
+    logToScreen("r2.val", "0");
 }
 
 int d14_old = -1;
@@ -246,11 +250,14 @@ void x_logic::loop(bool forceDataSend) {
 
     // Управляем светом
     uint32_t deltaSeconds = mData->nowTS - mData->startGrow.unixtime();
-    if (lightProgramOFF) {
+    if (lightForce == LightForce::Off) {
         // Принудительное выключение света
-        isLightOn = false;
-        digitalWrite(LIGHT_PIN, RELAY_OFF);
-    } else if (lightProgramForce) {
+        if (isLightOn == true) {
+            isLightOn = false;
+            logToScreen("d07.txt", "svet OFF");
+            digitalWrite(LIGHT_PIN, RELAY_OFF);
+        }
+    } else if (lightForce == LightForce::On) {
         // Принудительное включение света
         if (isLightOn == false) {
             isLightOn = true;
@@ -334,6 +341,20 @@ void x_logic::loop(bool forceDataSend) {
     if (forceDataSend || d05_old != lightProgram) {
         d05_old = lightProgram;
         logToScreen("d05.txt", "Program " + std::to_string(lightProgram));
+    }
+    if (forceDataSend || lightForceOld != lightForce) {
+        lightForceOld = lightForce;
+        switch (lightForce) {
+            case LightForce::Off:
+                logToScreen("r0.val", 0);logToScreen("r1.val", 0);logToScreen("r2.val", 1);
+                break;
+            case LightForce::On:
+                logToScreen("r0.val", 0);logToScreen("r1.val", 1);logToScreen("r2.val", 0);
+                break;
+            default:
+                logToScreen("r0.val", 1);logToScreen("r1.val", 0);logToScreen("r2.val", 0);
+                break;
+        }
     }
 
     // Управление в БОКСЕ
@@ -435,32 +456,26 @@ bool x_logic::processConsoleCommand(std::string &cmd) {
         pumpProgramOFF = false;
         return true;
     }
-    // Кнопка включения света
+
+
+    // Кнопка света
+    if (cmd.rfind("NoForceS", 0) == 0) {
+        Serial.println("\nPreferences saved, xlightProgramForceOn=true");
+        logToScreen("d06.txt", "The light is turned by a given program.");
+        lightForce = LightForce::NoForce;
+        return true;
+    }
     if (cmd.rfind("ForceSON", 0) == 0) {
-        Serial.println("\nPreferences saved, xlightProgramForce=true");
-        logToScreen("d06.txt", "The light is turned on forcibly, according to a given program.");
-        lightProgramForce = true;
+        Serial.println("\nPreferences saved, xlightProgramForceOn=true");
+        logToScreen("d06.txt", "The light on (force)");
+        lightForce = LightForce::On;
         return true;
     }
     // Кнопка выключения света
-    if (cmd.rfind("ForceSON", 0) == 0) {
+    if (cmd.rfind("ForceSOff", 0) == 0) {
         Serial.println("\nPreferences saved, xlightProgramOFF=true");
-        logToScreen("d06.txt", "The light off");
-        lightProgramOFF = true;
-        return true;
-    }
-    // Кнопка работы света по программе (FORCE)
-    if (cmd.rfind("ForceSOFF", 0) == 0) {
-        Serial.println("\nPreferences saved, xlightProgramForce=false");
-        logToScreen("d06.txt", " The light turns on according to the set program.");
-        lightProgramForce = false;
-        return true;
-    }
-    // Кнопка работы света по программе (OFF)
-    if (cmd.rfind("ForceSOFF", 0) == 0) {
-        Serial.println("\nPreferences saved, xlightProgramForce=false");
-        logToScreen("d06.txt", " The light turns on according to the set program.");
-        lightProgramForce = false;
+        logToScreen("d06.txt", "The light off (force)");
+        lightForce = LightForce::Off;
         return true;
     }
     return false;

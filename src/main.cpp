@@ -157,7 +157,13 @@ inline bool processConsoleCommand() {
         }
         return true;
     }
-
+    cmd = "e\x02\x01\x01џџџ";
+      if (str.rfind(cmd, 0) == 0) {
+        str.erase(0, strlen(cmd));
+        resendAllData = true;
+      return true;
+      }
+      
     if (DEBUG || VERBOSE && str.length() > 0) {
         logEvent("Unknown command");
     }

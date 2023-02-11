@@ -51,7 +51,7 @@ void x_temperature_humidity::setup(main_data &data) {
     sensorDS18B20.requestTemperatures();
 
     mData->preferences.begin(PREFS_BOX, true);
-    mData->boxHumidMax = mData->preferences.getFloat(PREFS_KEY_BOX_HUMID_MAX, 0);
+    mData->boxHumidMax = mData->preferences.getFloat(PREFS_KEY_BOX_HUMID_MAX, mData->boxHumidMax);
     if (DEBUG) {
         Serial.println((String) "[PREF GET] Box Humid Ok: " + mData->boxHumidMax);
     }
@@ -68,7 +68,7 @@ void x_temperature_humidity::loop(bool forceDataSend) {
         Serial.print("Temperature & Humidity:");
     }
 
-    // печатаем температуру и влвжность (DHT)
+    // печатаем температуру и влажность (DHT)
     sensors_event_t dhtVal;
 
     dht.temperature().getEvent(&dhtVal);
@@ -78,6 +78,7 @@ void x_temperature_humidity::loop(bool forceDataSend) {
     if (forceDataSend || !isnan(dhtVal.temperature) && d01_old != dhtVal.temperature) {
         d01_old = dhtVal.temperature;
         logToScreen("d01.txt", std::to_string(dhtVal.temperature) + " C");
+        // logToScreen("t01.txt", std::to_string(mData->boxHumidMin()) + "-" +  std::to_string(mData->boxHumidMax()));
     }
 
     dht.humidity().getEvent(&dhtVal);
@@ -113,7 +114,7 @@ void x_temperature_humidity::loop(bool forceDataSend) {
     }
     if (forceDataSend || d11_old != temperatureDS18B20) {
         d11_old = temperatureDS18B20;
-        logToScreen("d11.txt", std::to_string(temperatureDS18B20) + " C");
+        logToScreen("d11.txt", std::to_string(temperatureDS18B20) + " C");       
     }
 
     if (DEBUG) {

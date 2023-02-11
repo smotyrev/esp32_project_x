@@ -138,20 +138,25 @@ void x_logic::loop(bool forceDataSend) {
                 digitalWrite(PUMP_HIGH_PIN_HV, RELAY_ON);
             }
         } else if (pumpProgram == 2) {
-            if (digitalRead(PUMP_HIGH_PIN_HV) == RELAY_ON) {
-                // если откачка включена, то выключаем откачку
-                digitalWrite(PUMP_HIGH_PIN_HV, RELAY_OFF);
-            }
-            if (digitalRead(FLOAT_SENSOR2_PIN) == LOW) {
+            digitalWrite(PUMP_HIGH2_PIN, SRELAY_OFF);
+            if (digitalRead(FLOAT_SENSOR2_PIN) == POPLOVOK_SVOBODEN) {
                 if (digitalRead(PUMP_HIGH_PIN) == SRELAY_OFF) {
                     // если поплавок не затоплен и выключен насос накачки воды, 
                     // то включаем насос (корни без воды)
                     digitalWrite(PUMP_HIGH_PIN, SRELAY_ON);
                 }
-            } else if (digitalRead(PUMP_HIGH_PIN) == SRELAY_ON) {
-                // если поплавок затоплен и включен насос накачки воды, 
-                // то выключаем насос (корни в воде)
-                digitalWrite(PUMP_HIGH_PIN, SRELAY_OFF);
+                if (digitalRead(PUMP_HIGH_PIN_HV) == RELAY_OFF) {
+                    digitalWrite(PUMP_HIGH_PIN_HV, RELAY_ON);
+                }
+            } else {
+                if (digitalRead(PUMP_HIGH_PIN) == SRELAY_ON) {
+                    // если поплавок затоплен и включен насос накачки воды, 
+                    // то выключаем насос (корни в воде)
+                    digitalWrite(PUMP_HIGH_PIN, SRELAY_OFF);
+                }
+                if (digitalRead(PUMP_HIGH_PIN_HV) == RELAY_ON) {
+                    digitalWrite(PUMP_HIGH_PIN_HV, RELAY_OFF);
+                }
             }
         }
     } else if (pumpProgram == 1) {
@@ -184,7 +189,7 @@ void x_logic::loop(bool forceDataSend) {
         // если насос1 накачивает раствор, то проверяем: затоплен ли поплавок2
         if (digitalRead(PUMP_HIGH_PIN) == SRELAY_ON) {
             // если поплавок2 затонул, уровень воды высокий
-            if (digitalRead(FLOAT_SENSOR2_PIN) == LOW) {
+            if (digitalRead(FLOAT_SENSOR2_PIN) == POPLOVOK_ZATOPLEN) {
                 // отключаем насос1
                 digitalWrite(PUMP_HIGH_PIN, SRELAY_OFF);
                 digitalWrite(PUMP_HIGH_PIN_HV, RELAY_OFF);
@@ -202,7 +207,6 @@ void x_logic::loop(bool forceDataSend) {
                     // обнуляем время выключения насоса1, начинается стадия откачки
                     pumpHighTS_end = 0;
                     // включаем насос2, для откачки воды
-                    digitalWrite(PUMP_HIGH2_PIN, SRELAY_ON);
                     if (DEBUG) { logEvent("мотор высокого давления2: вкл"); }
                     // запоминаем время включения насоса2
                     pumpHigh2TS_start = mData->nowTS;
@@ -215,8 +219,8 @@ void x_logic::loop(bool forceDataSend) {
                 uint32_t dTS = mData->nowTS - pumpHigh2TS_start;
                 // если прошла минута работы насоса2, отключаем его
                 if (dTS > timePumpHigh2) {
-                    // отключаем насос2
-                    digitalWrite(PUMP_HIGH2_PIN, SRELAY_OFF);
+                    // используем насос2
+                    digitalWrite(PUMP_HIGH2_PIN, SRELAY_ON);
                     if (DEBUG) { logEvent("мотор высокого давления2: выкл"); }
                     // обнуляем время старата насоса2
                     pumpHigh2TS_start = 0;
@@ -230,10 +234,11 @@ void x_logic::loop(bool forceDataSend) {
                 // вычисляем сколько секунд прошло после выключения насоса2
                 uint32_t dTS = mData->nowTS - pumpHigh2TS_end;
                 // если время простоя вышло, и поплавок2 не затоплен (доп проверка)
-                if (dTS > timeoutPumpHigh && digitalRead(FLOAT_SENSOR2_PIN) == HIGH) {
+                if (dTS > timeoutPumpHigh && digitalRead(FLOAT_SENSOR2_PIN) == POPLOVOK_SVOBODEN) {
                     // включаем насос1, накачиваем раствор
                     digitalWrite(PUMP_HIGH_PIN, SRELAY_ON);
                     digitalWrite(PUMP_HIGH_PIN_HV, RELAY_ON);
+                    digitalWrite(PUMP_HIGH2_PIN, SRELAY_OFF);
                     if (DEBUG) { logEvent("мотор высокого давления1: вкл."); }
                     // запоминаем время включения насоса1
                     pumpHighTS_start = mData->nowTS;
@@ -380,6 +385,7 @@ void x_logic::loop(bool forceDataSend) {
                  + " >Min?=" + (mData->boxHumid > mData->boxHumidMin) + " <Max?=" + (mData->boxHumid < mData->boxHumidMax));
     }
     if (isBoxVentOn) {
+        // Serial.println("mData->boxHumidMax: " + (String) mData->boxHumidMax + "; mData->boxHumid: " + (String)mData->boxHumid);
         if (mData->boxHumid <= (mData->boxHumidMax - 5.0)) {
             isBoxVentOn = false;
             digitalWrite(BOX_VENT_PIN, RELAY_OFF);
@@ -463,7 +469,6 @@ bool x_logic::processConsoleCommand(std::string &cmd) {
         pumpForce = pumpForce::Offp;
         return true;
     }
-    return false;
     //END
 
     // RADIO CASE LIGHT(prog-on-off)
@@ -485,8 +490,9 @@ bool x_logic::processConsoleCommand(std::string &cmd) {
         lightForce = LightForce::Off;
         return true;
     }
-    return false;
-    //END 
+    //END
+    
+    return false; 
 }
 
 void x_logic::loopPhAndPpm(bool forceDataSend) {
